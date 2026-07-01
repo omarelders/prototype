@@ -1,0 +1,238 @@
+import React, { useState } from 'react';
+import { useAppState, AppStateProvider } from './shared/context/AppState';
+import { Lesson, Exam, ExamSubmission } from './shared/types';
+import { Settings as DevIcon, RefreshCw, Layers, X } from 'lucide-react';
+
+// Level 1 imports
+import LandingPage from './apps/public-site/landing/LandingPage';
+import OnboardingWizard from './apps/public-site/onboarding/OnboardingWizard';
+
+// Level 2 imports
+import TeacherDashboardLayout from './apps/teacher-dashboard/TeacherDashboardLayout';
+import DashboardHome from './apps/teacher-dashboard/dashboard/DashboardHome';
+import ContentManager from './apps/teacher-dashboard/content/ContentManager';
+import QuestionBank from './apps/teacher-dashboard/question-bank/QuestionBank';
+import ExamsManager from './apps/teacher-dashboard/exams/ExamsManager';
+import StudentsManager from './apps/teacher-dashboard/students/StudentsManager';
+import ActivationManager from './apps/teacher-dashboard/activation/ActivationManager';
+import CalendarView from './apps/teacher-dashboard/calendar/CalendarView';
+import CommunicationCenter from './apps/teacher-dashboard/communication/CommunicationCenter';
+import FinanceDashboard from './apps/teacher-dashboard/finance/FinanceDashboard';
+import AnalyticsDashboard from './apps/teacher-dashboard/analytics/AnalyticsDashboard';
+import SettingsPanel from './apps/teacher-dashboard/settings/SettingsPanel';
+
+// Level 3 imports
+import StudentPortalLayout from './apps/teacher-dashboard/student-portal/StudentPortalLayout';
+import StudentDashboard from './apps/teacher-dashboard/student-portal/dashboard/StudentDashboard';
+import LessonViewer from './apps/teacher-dashboard/student-portal/lesson/LessonViewer';
+import ExamTaker from './apps/teacher-dashboard/student-portal/exam/ExamTaker';
+import ExamResults from './apps/teacher-dashboard/student-portal/results/ExamResults';
+
+function AppContent() {
+  const { currentRole, setRole, currentLanguage, setLanguage } = useAppState();
+
+  // Teacher navigation state
+  const [teacherTab, setTeacherTab] = useState('dashboard');
+
+  // Student portal navigation & viewing sub-states
+  const [studentTab, setStudentTab] = useState('dashboard');
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+  const [activeExam, setActiveExam] = useState<Exam | null>(null);
+  const [activeSubmission, setActiveSubmission] = useState<ExamSubmission | undefined>(undefined);
+
+  // Floating controller state (developer debug panel)
+  const [showDevPanel, setShowDevPanel] = useState(true);
+
+  // Reset demo storage helper
+  const handleResetData = () => {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ab_')) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    window.location.reload();
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col relative">
+      
+      {/* 1. Level 1: Public Marketing & Auth */}
+      {currentRole === 'visitor' && <LandingPage />}
+      
+      {currentRole === 'onboarding' && <OnboardingWizard />}
+
+      {/* 2. Level 2: Teacher Dashboard */}
+      {currentRole === 'teacher' && (
+        <TeacherDashboardLayout activeTab={teacherTab} setActiveTab={setTeacherTab}>
+          {teacherTab === 'dashboard' && <DashboardHome onNavigate={setTeacherTab} />}
+          {teacherTab === 'content' && <ContentManager />}
+          {teacherTab === 'question-bank' && <QuestionBank />}
+          {teacherTab === 'exams' && <ExamsManager />}
+          {teacherTab === 'students' && <StudentsManager />}
+          {teacherTab === 'activation' && <ActivationManager />}
+          {teacherTab === 'calendar' && <CalendarView />}
+          {teacherTab === 'communication' && <CommunicationCenter />}
+          {teacherTab === 'finance' && <FinanceDashboard />}
+          {teacherTab === 'analytics' && <AnalyticsDashboard />}
+          {teacherTab === 'settings' && <SettingsPanel />}
+        </TeacherDashboardLayout>
+      )}
+
+      {/* 3. Level 3: Student Portal */}
+      {currentRole === 'student' && (
+        <StudentPortalLayout activeTab={studentTab} setActiveTab={(tab) => {
+          setStudentTab(tab);
+          setActiveLesson(null);
+          setActiveExam(null);
+        }}>
+          {activeLesson ? (
+            <LessonViewer 
+              lesson={activeLesson} 
+              onBack={() => setActiveLesson(null)} 
+            />
+          ) : activeExam ? (
+            <ExamTaker 
+              exam={activeExam} 
+              onSubmit={(sub) => {
+                setActiveSubmission(sub);
+                setStudentTab('exams');
+                setActiveExam(null);
+              }}
+            />
+          ) : (
+            <>
+              {studentTab === 'dashboard' && (
+                <StudentDashboard 
+                  onOpenLesson={setActiveLesson} 
+                  onOpenExam={setActiveExam}
+                  onNavigate={setStudentTab}
+                />
+              )}
+              {studentTab === 'lessons' && (
+                <StudentDashboard 
+                  onOpenLesson={setActiveLesson} 
+                  onOpenExam={setActiveExam}
+                  onNavigate={setStudentTab}
+                />
+              )}
+              {studentTab === 'exams' && (
+                <ExamResults 
+                  submission={activeSubmission} 
+                  onNavigate={setStudentTab}
+                />
+              )}
+            </>
+          )}
+        </StudentPortalLayout>
+      )}
+
+      {/* Floating Developer/Auditor control center (Prototype Switcher) */}
+      <div className="fixed bottom-4 left-4 z-50">
+        {showDevPanel ? (
+          <div className="bg-slate-900 border border-slate-800 text-slate-300 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 max-w-xs text-xs text-left animate-slide-in">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span className="font-extrabold text-white flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                <DevIcon className="h-4 w-4 text-indigo-400" />
+                <span>Prototype Controller</span>
+              </span>
+              <button 
+                onClick={() => setShowDevPanel(false)}
+                className="text-slate-500 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Role switch list */}
+            <div className="space-y-1.5">
+              <span className="font-bold text-[9px] uppercase tracking-widest text-slate-500">Jump User Role</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button 
+                  onClick={() => setRole('visitor')}
+                  className={`px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'visitor' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Visitor Site
+                </button>
+                <button 
+                  onClick={() => setRole('onboarding')}
+                  className={`px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'onboarding' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Onboarding
+                </button>
+                <button 
+                  onClick={() => setRole('teacher')}
+                  className={`px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'teacher' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Teacher DB
+                </button>
+                <button 
+                  onClick={() => setRole('student')}
+                  className={`px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'student' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Student Portal
+                </button>
+              </div>
+            </div>
+
+            {/* Language toggle selector */}
+            <div className="space-y-1">
+              <span className="font-bold text-[9px] uppercase tracking-widest text-slate-500">Toggle Language RTL</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button 
+                  onClick={() => setLanguage('en')}
+                  className={`px-2 py-1 rounded-lg border font-bold text-center transition-colors ${
+                    currentLanguage === 'en' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  English (LTR)
+                </button>
+                <button 
+                  onClick={() => setLanguage('ar')}
+                  className={`px-2 py-1 rounded-lg border font-bold text-center transition-colors ${
+                    currentLanguage === 'ar' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  العربية (RTL)
+                </button>
+              </div>
+            </div>
+
+            {/* Reset data */}
+            <button
+              onClick={handleResetData}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700/60"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Reset Mock Database</span>
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={() => setShowDevPanel(true)}
+            className="bg-slate-900 border border-slate-800 text-indigo-400 hover:text-white p-3 rounded-full shadow-2xl flex items-center justify-center"
+            title="Open developer controller"
+          >
+            <DevIcon className="h-5 w-5 animate-spin" style={{ animationDuration: '6s' }} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppStateProvider>
+      <AppContent />
+    </AppStateProvider>
+  );
+}

@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-primary-dark: #16213e;
+  --color-primary-blue: #4361ee;
+  --color-success-green: #2ecc71;
+  --color-alert-purple: #9b59b6;
+  --color-bg-light: #f8f9fa;
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #4a4a6a;
+
+  --font-arabic: 'Tajawal', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+  --animate-fade-in-up: fade-in-up 0.6s ease-out forwards;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+body {
+  background-color: #f8f9fa;
+  color: #1a1a2e;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+[dir="rtl"] {
+  font-family: 'Tajawal', sans-serif;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Math symbols layout helper */
+.latex-inline {
+  background-color: rgba(67, 97, 238, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.latex-block {
+  background-color: rgba(67, 97, 238, 0.04);
+  padding: 10px;
+  border-radius: 6px;
+  font-family: monospace;
+  display: block;
+  margin: 10px 0;
+  border-inline-start: 3px solid #4361ee;
+  font-size: 0.95em;
+  overflow-x: auto;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-panel-dark {
+  background: rgba(22, 33, 62, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
