@@ -1155,7 +1155,8 @@ export default function ContentManager() {
               grade: data.grade,
               options: data.options,
               correctOption: data.correctOption,
-              modelAnswer: data.modelAnswer
+              modelAnswer: data.modelAnswer,
+              folderId: folders.length > 0 ? folders[0].id : 'unassigned'
             };
             addQuestion(generatedQ);
             
