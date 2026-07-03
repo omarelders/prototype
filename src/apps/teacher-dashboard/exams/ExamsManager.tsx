@@ -764,7 +764,7 @@ export default function ExamsManager() {
               options: data.options,
               correctOption: data.correctOption,
               modelAnswer: data.modelAnswer,
-              folderId: folders.length > 0 ? folders[0].id : 'unassigned'
+              folderId: folders.length > 0 ? folders[0].id : 'unassigned' // link to folder or unassigned
             };
             addQuestion(generatedQ);
             setSelectedQIds(prev => [...prev, generatedQ.id]);
