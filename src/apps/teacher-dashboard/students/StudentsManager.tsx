@@ -59,6 +59,10 @@ export default function StudentsManager() {
 
   // Excel states
   const [excelPreview, setExcelPreview] = useState<{name: string, email: string}[]>([]);
+  
+  // Bulk selection states
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -106,6 +110,34 @@ export default function StudentsManager() {
       return;
     }
     activateStudentWithWallet(student.id, cost);
+  };
+
+  const getBulkCost = () => {
+    let cost = 0;
+    selectedIds.forEach(id => {
+      const student = students.find(s => s.id === id);
+      if (student) cost += (student.paymentAmount || teacherProfile.studentPrice || 150);
+    });
+    return cost;
+  };
+
+  const handleBulkActivate = () => {
+    const totalCost = getBulkCost();
+    if (walletBalance < totalCost) {
+      setInsufficientFundsStudent({ id: 'bulk', name: currentLanguage === 'en' ? `${selectedIds.size} Students` : `${selectedIds.size} طلاب`, paymentAmount: totalCost });
+      setShowBulkConfirm(false);
+      return;
+    }
+    
+    selectedIds.forEach(id => {
+      const student = students.find(s => s.id === id);
+      if (student) {
+        const cost = student.paymentAmount || teacherProfile.studentPrice || 150;
+        activateStudentWithWallet(id, cost);
+      }
+    });
+    setSelectedIds(new Set());
+    setShowBulkConfirm(false);
   };
 
   // Translations
@@ -201,7 +233,7 @@ export default function StudentsManager() {
   });
 
   return (
-    <div className="space-y-6 text-left">
+    <div className={`space-y-6 ${currentLanguage === 'ar' ? 'text-right' : 'text-left'}`}>
       {/* Alert Banner for pending Vodafone cash activations */}
       {pendingStudents.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
@@ -233,7 +265,10 @@ export default function StudentsManager() {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex gap-2">
             <button 
-              onClick={() => setActiveSubTab('active')}
+              onClick={() => {
+                setActiveSubTab('active');
+                setSelectedIds(new Set());
+              }}
               className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 activeSubTab === 'active' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
               }`}
@@ -241,7 +276,10 @@ export default function StudentsManager() {
               {t.activeTab} ({activeStudents.length})
             </button>
             <button 
-              onClick={() => setActiveSubTab('pending')}
+              onClick={() => {
+                setActiveSubTab('pending');
+                setSelectedIds(new Set());
+              }}
               className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 activeSubTab === 'pending' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
               }`}
@@ -282,7 +320,7 @@ export default function StudentsManager() {
       {/* Main Grid Tables */}
       <div className="grid lg:grid-cols-12 gap-8 items-start">
         {/* Table data container */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
           {filteredList.length === 0 ? (
             <div className="p-12 text-center text-slate-400 space-y-2">
               <Users className="h-8 w-8 mx-auto text-slate-300" />
@@ -292,6 +330,20 @@ export default function StudentsManager() {
             <table className="w-full text-sm text-slate-500">
               <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
                 <tr>
+                  <th className="px-6 py-4 w-12">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer w-4 h-4"
+                      checked={filteredList.length > 0 && selectedIds.size === filteredList.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(new Set(filteredList.map(s => s.id)));
+                        } else {
+                          setSelectedIds(new Set());
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">{t.colName}</th>
                   <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">{t.colEmail}</th>
                   <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">{t.colProgress}</th>
@@ -301,7 +353,20 @@ export default function StudentsManager() {
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-600">
                 {filteredList.map(student => (
-                  <tr key={student.id} className="hover:bg-slate-50/50">
+                  <tr key={student.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.has(student.id) ? 'bg-indigo-50/20' : ''}`}>
+                    <td className="px-6 py-4 w-12">
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer w-4 h-4"
+                        checked={selectedIds.has(student.id)}
+                        onChange={(e) => {
+                          const newSet = new Set(selectedIds);
+                          if (e.target.checked) newSet.add(student.id);
+                          else newSet.delete(student.id);
+                          setSelectedIds(newSet);
+                        }}
+                      />
+                    </td>
                     <td className="px-6 py-4 text-slate-900 font-bold">{student.name}</td>
                     <td className="px-6 py-4 truncate max-w-[120px]">{student.email}</td>
                     <td className="px-6 py-4">
@@ -799,18 +864,18 @@ export default function StudentsManager() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-
+            
             <div className="space-y-3 font-semibold text-xs text-slate-600 leading-relaxed">
               <p>
                 {currentLanguage === 'en' 
-                  ? `You are attempting to activate ${insufficientFundsStudent.id === 'temp-bulk' ? 'a batch of students' : `student "${insufficientFundsStudent.name}"`} which costs ${insufficientFundsStudent.paymentAmount || teacherProfile.studentPrice || 150} EGP.`
-                  : `أنت تحاول تفعيل ${insufficientFundsStudent.id === 'temp-bulk' ? 'دفعة من الطلاب' : `اشتراك الطالب "${insufficientFundsStudent.name}"`} بتكلفة ${insufficientFundsStudent.paymentAmount || teacherProfile.studentPrice || 150} ج.م.`
+                  ? `You are attempting to activate ${insufficientFundsStudent.id === 'bulk' ? 'a batch of students' : `student "${insufficientFundsStudent.name}"`} which costs ${(insufficientFundsStudent as any).paymentAmount || teacherProfile.studentPrice || 150} EGP.`
+                  : `أنت تحاول تفعيل ${insufficientFundsStudent.id === 'bulk' ? 'دفعة من الطلاب' : `اشتراك الطالب "${insufficientFundsStudent.name}"`} بتكلفة ${(insufficientFundsStudent as any).paymentAmount || teacherProfile.studentPrice || 150} ج.م.`
                 }
               </p>
               <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1 font-mono">
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t.required}</span>
-                  <span className="text-slate-800 font-bold">{insufficientFundsStudent.paymentAmount || teacherProfile.studentPrice || 150} {t.egp}</span>
+                  <span className="text-slate-800 font-bold">{(insufficientFundsStudent as any).paymentAmount || teacherProfile.studentPrice || 150} {t.egp}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t.currentBalance}</span>
@@ -842,6 +907,96 @@ export default function StudentsManager() {
               >
                 <Wallet className="h-4 w-4" />
                 <span>{currentLanguage === 'en' ? 'Top Up Wallet' : 'شحن المحفظة الآن'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Activation Confirmation Modal */}
+      {showBulkConfirm && (
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-5 text-left animate-scale-up">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-indigo-600" />
+                <span>{currentLanguage === 'en' ? 'Confirm Bulk Activation' : 'تأكيد التفعيل المجمع'}</span>
+              </h3>
+              <button onClick={() => setShowBulkConfirm(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl space-y-3">
+              <p className="text-sm font-semibold text-slate-700 leading-relaxed">
+                {currentLanguage === 'en' 
+                  ? `You are about to activate ${selectedIds.size} selected students. This will deduct the required amount from your wallet.`
+                  : `أنت على وشك تفعيل ${selectedIds.size} طالب محدد. سيتم خصم المبلغ المطلوب من رصيد محفظتك.`}
+              </p>
+              
+              <div className="bg-white rounded-lg p-3 border border-indigo-50">
+                <div className="flex justify-between text-xs font-bold mb-1">
+                  <span className="text-slate-500">{currentLanguage === 'en' ? 'Selected Students:' : 'الطلاب المحددين:'}</span>
+                  <span className="text-indigo-600">{selectedIds.size}</span>
+                </div>
+                <div className="flex justify-between text-xs font-bold pt-2 border-t border-slate-100 mt-2">
+                  <span className="text-slate-500">{currentLanguage === 'en' ? 'Total Deduction:' : 'إجمالي الخصم:'}</span>
+                  <span className="text-indigo-600">{getBulkCost()} {t.egp}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowBulkConfirm(false)}
+                className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                {currentLanguage === 'en' ? 'Cancel' : 'إلغاء'}
+              </button>
+              
+              <button
+                onClick={handleBulkActivate}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Wallet className="h-4 w-4" />
+                <span>{currentLanguage === 'en' ? 'Confirm Activation' : 'تأكيد التفعيل'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-slide-up">
+          <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-2xl rounded-full px-6 py-4 flex items-center gap-8">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-100 text-indigo-700 font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm">
+                {selectedIds.size}
+              </div>
+              <div>
+                <p className="text-xs font-extrabold text-slate-800">
+                  {currentLanguage === 'en' ? 'Students Selected' : 'طلاب محددين'}
+                </p>
+                <p className="text-[10px] font-bold text-slate-500">
+                  {currentLanguage === 'en' ? 'Total Value: ' : 'الإجمالي: '}
+                  <span className="text-indigo-600">{getBulkCost()} {t.egp}</span>
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs font-bold text-slate-500 hover:text-slate-700 px-2 transition-colors"
+              >
+                {currentLanguage === 'en' ? 'Clear' : 'إلغاء التحديد'}
+              </button>
+              <button
+                onClick={() => setShowBulkConfirm(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-full text-xs shadow-md shadow-indigo-200 hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                {currentLanguage === 'en' ? 'Activate Selected' : 'تفعيل المحددين'}
               </button>
             </div>
           </div>

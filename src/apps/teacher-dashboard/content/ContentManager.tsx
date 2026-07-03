@@ -4,6 +4,7 @@ import { Lesson, LessonSection, ClassGroup, Question } from '../../../shared/typ
 import MathRenderer from '../../../shared/components/MathRenderer';
 import QuestionFormModal from '../../../shared/components/QuestionFormModal';
 import AIGeneratorModal from '../../../shared/components/AIGeneratorModal';
+import AssignLessonsToGroupModal from '../../../shared/components/AssignLessonsToGroupModal';
 import {
   BookOpen,
   Layers,
@@ -37,12 +38,13 @@ export default function ContentManager() {
     addClass,
     questions,
     addQuestion,
-    folders
+    folders,
+    updateLessonGroupLinks
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState<'lessons' | 'classes'>('lessons');
 
-// Translations
+  // Translations
   const dict = {
     en: {
       lessons: "Lessons",
@@ -77,7 +79,7 @@ export default function ContentManager() {
     },
     ar: {
       lessons: "الدروس والشروحات",
-      classes: "المجموعات والفصول",
+      classes: "الفصول",
       createLessonBtn: "إنشاء درس جديد",
       createClassBtn: "إنشاء مجموعة جديدة",
       colTitle: "عنوان الدرس",
@@ -115,7 +117,7 @@ export default function ContentManager() {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [draggedSectionIdx, setDraggedSectionIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  
+
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [qModalType, setQModalType] = useState<'mcq' | 'essay'>('mcq');
@@ -126,26 +128,59 @@ export default function ContentManager() {
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonDesc, setLessonDesc] = useState('');
   const [lessonThumbnail, setLessonThumbnail] = useState<string | null>(null);
-  const [lessonGrade, setLessonGrade] = useState<'Grade 1' | 'Grade 2' | 'Grade 3'>('Grade 1');
+  const [lessonTargetClass, setLessonTargetClass] = useState<string>('');
   const [lessonStatus, setLessonStatus] = useState<'draft' | 'published' | 'scheduled'>('published');
+
+  // Hybrid linking states
+  const [cGrade, setCGrade] = useState<'Grade 1' | 'Grade 2' | 'Grade 3'>('Grade 1');
+  const [lessonSubject, setLessonSubject] = useState('Chemistry');
+  const [assignModalConfig, setAssignModalConfig] = useState<{ mode: 'lesson-to-groups' | 'group-to-lessons'; sourceId: string; gradeFilter?: string; isOptionalStep?: boolean } | null>(null);
+  const [preSelectedGroupId, setPreSelectedGroupId] = useState<string | null>(null);
+  const [isNewLesson, setIsNewLesson] = useState(false);
+
+  useEffect(() => {
+    if (showCreateLessonModal) {
+      if (preSelectedGroupId) {
+        setLessonTargetClass(preSelectedGroupId);
+      } else if (classes.length > 0 && !lessonTargetClass) {
+        setLessonTargetClass(classes[0].id);
+      }
+    }
+  }, [showCreateLessonModal, preSelectedGroupId, classes, lessonTargetClass]);
 
   const handleCreateLessonSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!lessonTitle) return;
+
+    const targetClassId = preSelectedGroupId || lessonTargetClass || (classes.length > 0 ? classes[0].id : 'c-1');
+    const selectedClass = classes.find(c => c.id === targetClassId);
+
     const newL: Lesson = {
       id: `l-${Date.now()}`,
       title: lessonTitle,
       description: lessonDesc,
       status: lessonStatus,
-      targetClass: lessonGrade === 'Grade 1' ? 'c-1' : lessonGrade === 'Grade 2' ? 'c-2' : 'c-3',
-      sections: []
+      targetClass: targetClassId,
+      sections: [],
+      grade: selectedClass?.grade || 'Grade 1',
+      subject: lessonSubject
     };
     addLesson(newL);
-    setBuilderLesson(newL);
-    setHistory([[]]);
-    setHistoryIndex(0);
+
+    // Link this lesson to the class group immediately
+    updateLessonGroupLinks({ lessonId: newL.id, linkedIds: [targetClassId] });
+
+    if (preSelectedGroupId) {
+      setPreSelectedGroupId(null);
+    } else {
+      setBuilderLesson(newL);
+      setHistory([[]]);
+      setHistoryIndex(0);
+      setIsNewLesson(true);
+      setShowBuilder(true);
+    }
+
     setShowCreateLessonModal(false);
-    setShowBuilder(true);
     // Clear fields
     setLessonTitle('');
     setLessonDesc('');
@@ -169,7 +204,7 @@ export default function ContentManager() {
         title: currentLanguage === 'en' ? 'New Chemistry Lecture' : 'محاضرة كيمياء جديدة',
         description: '',
         status: 'draft',
-        targetClass: 'c-1',
+        targetClass: classes.length > 0 ? classes[0].id : 'c-1',
         sections: []
       };
       setBuilderLesson(newL);
@@ -336,13 +371,32 @@ export default function ContentManager() {
     if (!builderLesson) return;
 
     const existing = lessons.find(l => l.id === builderLesson.id);
+    const savedLesson = {
+      ...builderLesson,
+      status: 'published' as const,
+      grade: builderLesson.grade || classes.find(c => c.id === builderLesson.targetClass)?.grade || 'Grade 1',
+      subject: builderLesson.subject || 'Chemistry'
+    };
+
     if (existing) {
-      updateLesson({ ...builderLesson, status: 'published' });
+      updateLesson(savedLesson);
     } else {
-      addLesson({ ...builderLesson, status: 'published' });
+      addLesson(savedLesson);
     }
+
     setShowBuilder(false);
     setBuilderLesson(null);
+
+    // If it was a newly created lesson, open AssignModal!
+    if (isNewLesson) {
+      setAssignModalConfig({
+        mode: 'lesson-to-groups',
+        sourceId: savedLesson.id,
+        gradeFilter: savedLesson.grade,
+        isOptionalStep: true
+      });
+      setIsNewLesson(false);
+    }
   };
 
   // 2. Class creation logic
@@ -358,12 +412,21 @@ export default function ContentManager() {
       name: cName,
       description: cDesc,
       lessonIds: [],
-      examIds: []
+      examIds: [],
+      grade: cGrade
     };
     addClass(newClass);
     setShowClassModal(false);
     setCName('');
     setCDesc('');
+
+    // Step 2: Open AssignLessonsToGroupModal for this new class group
+    setAssignModalConfig({
+      mode: 'group-to-lessons',
+      sourceId: newClass.id,
+      gradeFilter: newClass.grade,
+      isOptionalStep: true
+    });
   };
 
   return (
@@ -412,8 +475,8 @@ export default function ContentManager() {
       {activeTab === 'lessons' && !showBuilder && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {lessons.map(lesson => (
-            <div 
-              key={lesson.id} 
+            <div
+              key={lesson.id}
               className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all group flex flex-col overflow-hidden"
             >
               {/* Card Header (Cover Image/Color + Status) */}
@@ -422,9 +485,8 @@ export default function ContentManager() {
                   <BookOpen className="h-6 w-6 text-indigo-600" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex px-2 py-1 rounded-md text-[10px] font-bold ${
-                    lesson.status === 'published' ? 'bg-emerald-500 text-white' : lesson.status === 'scheduled' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-600'
-                  }`}>
+                  <span className={`inline-flex px-2 py-1 rounded-md text-[10px] font-bold ${lesson.status === 'published' ? 'bg-emerald-500 text-white' : lesson.status === 'scheduled' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
                     {lesson.status === 'published' ? 'Active' : lesson.status === 'scheduled' ? 'Scheduled' : 'Draft'}
                   </span>
                   <div className="cursor-grab text-slate-400 hover:text-slate-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -432,27 +494,50 @@ export default function ContentManager() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Card Body */}
               <div className="p-5 flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {lesson.targetClass === 'c-1' ? 'Grade 1' : lesson.targetClass === 'c-2' ? 'Grade 2' : 'Grade 3'}
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                    {classes.find(c => c.id === lesson.targetClass)?.name || lesson.grade || 'General'}
                   </span>
                 </div>
                 <h3 className="font-extrabold text-slate-900 text-lg line-clamp-1">{lesson.title}</h3>
                 {lesson.description && (
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{lesson.description}</p>
                 )}
-                
+
                 <div className="mt-auto pt-4 flex flex-wrap items-center gap-2">
                   <span className="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5">
                     <Layers className="h-3 w-3" />
                     {lesson.sections && lesson.sections.length > 0 ? `${lesson.sections.length} Sections` : 'Empty'}
                   </span>
+                  {(() => {
+                    const linkedGroups = classes.filter(cls => cls.lessonIds.includes(lesson.id));
+                    const count = linkedGroups.length;
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssignModalConfig({
+                            mode: 'lesson-to-groups',
+                            sourceId: lesson.id,
+                            gradeFilter: lesson.grade
+                          });
+                        }}
+                        className="bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 px-2 py-1 rounded-md text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all"
+                        title={currentLanguage === 'en' ? 'Manage Linked Groups' : 'إدارة المجموعات المرتبطة'}
+                      >
+                        <Folder className="h-3 w-3" />
+                        <span>
+                          {currentLanguage === 'en' ? `${count} Groups` : `${count} مجموعات`}
+                        </span>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
-              
+
               {/* Card Footer Actions */}
               <div className="border-t border-slate-100 p-3 flex justify-between bg-slate-50">
                 <button
@@ -542,7 +627,7 @@ export default function ContentManager() {
                 <h4 className="font-bold text-slate-800 text-sm">Curriculum Outline</h4>
                 <p className="text-xs text-slate-500 mt-1 font-medium">Drag items to reorder</p>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {builderLesson.sections.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
@@ -551,8 +636,8 @@ export default function ContentManager() {
                   </div>
                 ) : (
                   builderLesson.sections.map((section, idx) => (
-                    <div 
-                      key={section.id} 
+                    <div
+                      key={section.id}
                       draggable
                       onDragStart={(e) => {
                         setDraggedSectionIdx(idx);
@@ -577,24 +662,22 @@ export default function ContentManager() {
                         setDraggedSectionIdx(null);
                         setDragOverIdx(null);
                       }}
-                      className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
-                        selectedSectionId === section.id 
-                          ? 'bg-indigo-50 border-indigo-200 shadow-sm ring-1 ring-indigo-500/20' 
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${selectedSectionId === section.id
+                          ? 'bg-indigo-50 border-indigo-200 shadow-sm ring-1 ring-indigo-500/20'
                           : dragOverIdx === idx
-                          ? 'bg-indigo-50 border-indigo-400 border-dashed'
-                          : 'bg-white border-slate-200 hover:border-slate-300'
-                      } ${draggedSectionIdx === idx ? 'opacity-50' : ''}`}
+                            ? 'bg-indigo-50 border-indigo-400 border-dashed'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        } ${draggedSectionIdx === idx ? 'opacity-50' : ''}`}
                       onClick={() => setSelectedSectionId(section.id)}
                     >
                       <div className="flex items-center gap-3 overflow-hidden w-full">
                         <div className="cursor-grab text-slate-400 hover:text-slate-600 px-1 py-2">
                           <GripVertical className="h-4 w-4" />
                         </div>
-                        <div className={`p-1.5 rounded-lg shrink-0 ${
-                          section.type === 'video' ? 'bg-blue-100 text-blue-600' :
-                          section.type === 'reading' ? 'bg-amber-100 text-amber-600' :
-                          'bg-emerald-100 text-emerald-600'
-                        }`}>
+                        <div className={`p-1.5 rounded-lg shrink-0 ${section.type === 'video' ? 'bg-blue-100 text-blue-600' :
+                            section.type === 'reading' ? 'bg-amber-100 text-amber-600' :
+                              'bg-emerald-100 text-emerald-600'
+                          }`}>
                           {section.type === 'video' && <Video className="h-3.5 w-3.5" />}
                           {section.type === 'reading' && <FileText className="h-3.5 w-3.5" />}
                           {section.type === 'exercises' && <Layers className="h-3.5 w-3.5" />}
@@ -607,7 +690,7 @@ export default function ContentManager() {
                   ))
                 )}
               </div>
-              
+
               {/* Add Content Toolbar */}
               <div className="p-4 border-t border-slate-200 bg-white grid grid-cols-1 gap-2 shrink-0">
                 <button
@@ -636,7 +719,7 @@ export default function ContentManager() {
               {(() => {
                 const activeSection = builderLesson.sections.find(s => s.id === selectedSectionId);
                 const activeIdx = builderLesson.sections.findIndex(s => s.id === selectedSectionId);
-                
+
                 if (!activeSection) {
                   return (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-4 bg-slate-50/30 rounded-2xl">
@@ -651,11 +734,10 @@ export default function ContentManager() {
                     {/* Header */}
                     <div className="flex flex-wrap sm:flex-nowrap items-center justify-between border-b border-slate-100 pb-4 gap-4">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl ${
-                          activeSection.type === 'video' ? 'bg-blue-50 text-blue-600' :
-                          activeSection.type === 'reading' ? 'bg-amber-50 text-amber-600' :
-                          'bg-emerald-50 text-emerald-600'
-                        }`}>
+                        <div className={`p-2 rounded-xl ${activeSection.type === 'video' ? 'bg-blue-50 text-blue-600' :
+                            activeSection.type === 'reading' ? 'bg-amber-50 text-amber-600' :
+                              'bg-emerald-50 text-emerald-600'
+                          }`}>
                           {activeSection.type === 'video' && <Video className="h-5 w-5" />}
                           {activeSection.type === 'reading' && <FileText className="h-5 w-5" />}
                           {activeSection.type === 'exercises' && <Layers className="h-5 w-5" />}
@@ -740,9 +822,9 @@ export default function ContentManager() {
                             </div>
                           ) : (
                             <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-lg mt-6">
-                               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                               <PlayCircle className="h-16 w-16 text-white/50" />
-                               <span className="absolute bottom-4 left-6 text-white/80 text-sm font-semibold">Video Preview</span>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                              <PlayCircle className="h-16 w-16 text-white/50" />
+                              <span className="absolute bottom-4 left-6 text-white/80 text-sm font-semibold">Video Preview</span>
                             </div>
                           )}
                         </div>
@@ -755,15 +837,15 @@ export default function ContentManager() {
                             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-600 transition-colors flex flex-col">
                               {/* Toolbar */}
                               <div className="flex flex-wrap items-center gap-1 bg-slate-50 border-b border-slate-200 p-2">
-                                 <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '**', '**')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-extrabold text-sm transition-colors" title="Bold">B</button>
-                                 <div className="w-px h-4 bg-slate-300 mx-1" />
-                                 <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '## ')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm transition-colors" title="Header 2">H2</button>
-                                 <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '### ')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm transition-colors" title="Header 3">H3</button>
-                                 <div className="w-px h-4 bg-slate-300 mx-1" />
-                                 <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '- ')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm transition-colors" title="Bullet List">• List</button>
-                                 <div className="w-px h-4 bg-slate-300 mx-1" />
-                                 <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '$', '$')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm font-serif italic transition-colors" title="Inline Math">$x$</button>
-                                 <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '\n$$\n', '\n$$\n')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm font-serif transition-colors" title="Block Math">∑ Math</button>
+                                <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '**', '**')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-extrabold text-sm transition-colors" title="Bold">B</button>
+                                <div className="w-px h-4 bg-slate-300 mx-1" />
+                                <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '## ')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm transition-colors" title="Header 2">H2</button>
+                                <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '### ')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm transition-colors" title="Header 3">H3</button>
+                                <div className="w-px h-4 bg-slate-300 mx-1" />
+                                <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '- ')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm transition-colors" title="Bullet List">• List</button>
+                                <div className="w-px h-4 bg-slate-300 mx-1" />
+                                <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '$', '$')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm font-serif italic transition-colors" title="Inline Math">$x$</button>
+                                <button onClick={() => insertTextAtCursor(`editor-${activeSection.id}`, activeSection.id, '\n$$\n', '\n$$\n')} className="px-2.5 py-1.5 hover:bg-slate-200 rounded text-slate-700 font-bold text-sm font-serif transition-colors" title="Block Math">∑ Math</button>
                               </div>
                               <textarea
                                 id={`editor-${activeSection.id}`}
@@ -801,29 +883,29 @@ export default function ContentManager() {
                           </div>
 
                           <div className="flex gap-4">
-                             <button
-                                onClick={() => {
-                                  setQModalType('mcq');
-                                  setShowQuestionModal(true);
-                                }}
-                                className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm"
-                             >
-                               + Create MCQ
-                             </button>
-                             <button
-                                onClick={() => {
-                                  setQModalType('essay');
-                                  setShowQuestionModal(true);
-                                }}
-                                className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm"
-                             >
-                               + Create Essay
-                             </button>
+                            <button
+                              onClick={() => {
+                                setQModalType('mcq');
+                                setShowQuestionModal(true);
+                              }}
+                              className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm"
+                            >
+                              + Create MCQ
+                            </button>
+                            <button
+                              onClick={() => {
+                                setQModalType('essay');
+                                setShowQuestionModal(true);
+                              }}
+                              className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm"
+                            >
+                              + Create Essay
+                            </button>
                           </div>
 
                           <div className="border border-slate-200 p-3 rounded-xl bg-slate-50 space-y-3">
                             {(() => {
-                              const targetGrade = builderLesson.targetClass === 'c-1' ? 'Grade 1' : builderLesson.targetClass === 'c-2' ? 'Grade 2' : 'Grade 3';
+                              const targetGrade = classes.find(c => c.id === builderLesson.targetClass)?.grade || builderLesson.grade || 'Grade 1';
                               const filteredBankQuestions = questions.filter(q => q.grade === targetGrade || !q.grade);
                               if (filteredBankQuestions.length === 0) {
                                 return (
@@ -865,13 +947,12 @@ export default function ContentManager() {
                                       </div>
                                       <ChevronDown className={`h-4.5 w-4.5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                     </button>
-                                    
+
                                     {isExpanded && (
                                       <div className="p-2 space-y-2 bg-slate-50 border-t border-slate-100 max-h-[300px] overflow-y-auto">
                                         {folderQuestions.map(q => (
-                                          <label key={q.id} className={`flex items-start gap-3 text-xs font-bold cursor-pointer p-3 rounded-xl border transition-all ${
-                                            (activeSection.exerciseQuestionIds || []).includes(q.id) ? 'border-indigo-500 bg-white shadow-sm ring-1 ring-indigo-500/20' : 'border-slate-200 bg-white hover:border-slate-300'
-                                          }`}>
+                                          <label key={q.id} className={`flex items-start gap-3 text-xs font-bold cursor-pointer p-3 rounded-xl border transition-all ${(activeSection.exerciseQuestionIds || []).includes(q.id) ? 'border-indigo-500 bg-white shadow-sm ring-1 ring-indigo-500/20' : 'border-slate-200 bg-white hover:border-slate-300'
+                                            }`}>
                                             <input
                                               type="checkbox"
                                               checked={(activeSection.exerciseQuestionIds || []).includes(q.id)}
@@ -899,7 +980,7 @@ export default function ContentManager() {
                           {showQuestionModal && (
                             <QuestionFormModal
                               defaultType={qModalType}
-                              defaultGrade={builderLesson?.targetClass === 'c-1' ? 'Grade 1' : builderLesson?.targetClass === 'c-2' ? 'Grade 2' : 'Grade 3'}
+                              defaultGrade={classes.find(c => c.id === builderLesson?.targetClass)?.grade || builderLesson?.grade || 'Grade 1'}
                               onSave={(savedQ) => {
                                 const newQ: Question = {
                                   id: `q-${Date.now()}`,
@@ -934,7 +1015,7 @@ export default function ContentManager() {
                                         <span className={`px-2.5 py-1 rounded-md font-mono font-bold text-[10px] border ${qObj?.type === 'mcq' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
                                           {qObj ? qObj.type.toUpperCase() : 'MCQ'}
                                         </span>
-                                        <button 
+                                        <button
                                           onClick={() => handleToggleQuestion(activeSection.id, qId)}
                                           className="text-slate-400 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-1"
                                         >
@@ -972,15 +1053,31 @@ export default function ContentManager() {
                   <Layers className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-extrabold text-slate-900">{cls.name}</h4>
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-extrabold text-slate-900">{cls.name}</h4>
+                    {cls.grade && (
+                      <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md">
+                        {cls.grade}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500 font-medium leading-relaxed">{cls.description}</p>
                 </div>
                 <div className="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4 text-xs font-bold">
-                  <div>
-                    <span className="text-slate-400 block">{t.classGroup.lessonsCount}</span>
+                  <button
+                    onClick={() => {
+                      setAssignModalConfig({
+                        mode: 'group-to-lessons',
+                        sourceId: cls.id,
+                        gradeFilter: cls.grade
+                      });
+                    }}
+                    className="text-left cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-all border border-transparent hover:border-slate-100"
+                  >
+                    <span className="text-indigo-600 block">{t.classGroup.lessonsCount}</span>
                     <span className="text-slate-800 text-sm mt-0.5 block">{cls.lessonIds.length}</span>
-                  </div>
-                  <div>
+                  </button>
+                  <div className="p-1.5">
                     <span className="text-slate-400 block">{t.classGroup.examsCount}</span>
                     <span className="text-slate-800 text-sm mt-0.5 block">{cls.examIds.length}</span>
                   </div>
@@ -1020,6 +1117,22 @@ export default function ContentManager() {
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none resize-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Grade</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(['Grade 1', 'Grade 2', 'Grade 3'] as const).map(grade => (
+                      <button
+                        key={grade}
+                        type="button"
+                        onClick={() => setCGrade(grade)}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${cGrade === grade ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                      >
+                        {grade}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button
                   type="submit"
                   className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100"
@@ -1029,119 +1142,148 @@ export default function ContentManager() {
               </form>
             </div>
           )}
-
-          {/* Modal Lesson Creation */}
-          {showCreateLessonModal && (
-            <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <form onSubmit={handleCreateLessonSubmit} className="bg-[#0f0a1e]/95 rounded-2xl border border-white/[0.08] shadow-2xl max-w-md w-full p-8 space-y-5 text-left animate-fade-in glass-card">
-                <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                  <h3 className="font-extrabold text-white text-lg">Create New Lesson</h3>
-                  <button type="button" onClick={() => setShowCreateLessonModal(false)} className="text-slate-400 hover:text-white transition-colors">
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={lessonTitle}
-                    onChange={e => setLessonTitle(e.target.value)}
-                    placeholder="Enter lesson title"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:bg-white/10 focus:border-indigo-500 outline-none font-semibold text-slate-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Description</label>
-                  <textarea
-                    rows={2}
-                    value={lessonDesc}
-                    onChange={e => setLessonDesc(e.target.value)}
-                    placeholder="Enter lesson description"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:bg-white/10 focus:border-indigo-500 outline-none resize-none font-semibold text-slate-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Thumbnail</label>
-                  <div className="border-2 border-dashed border-white/10 hover:border-violet-500/40 rounded-xl p-5 text-center hover:bg-white/[0.02] transition-all relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = () => setLessonThumbnail(reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <Upload className="h-6 w-6 mx-auto text-slate-500 mb-1.5" />
-                    <p className="text-xs font-bold text-slate-300">{lessonThumbnail ? 'Image loaded' : 'Drag & drop an image here, or click to browse'}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5 font-medium">PNG, JPG up to 5MB</p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Grade</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(['Grade 1', 'Grade 2', 'Grade 3'] as const).map(grade => (
-                      <button
-                        key={grade}
-                        type="button"
-                        onClick={() => setLessonGrade(grade)}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                          lessonGrade === grade ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                        }`}
-                      >
-                        {grade}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Status</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(['draft', 'published', 'scheduled'] as const).map(status => (
-                      <button
-                        key={status}
-                        type="button"
-                        onClick={() => setLessonStatus(status)}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all capitalize ${
-                          lessonStatus === status ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                        }`}
-                      >
-                        {status === 'published' ? 'Publish Now' : status === 'scheduled' ? 'Schedule' : 'Draft'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 flex items-center justify-center gap-2"
-                  >
-                    <span>Create & Add Sections</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateLessonModal(false)}
-                    className="flex-1 border border-white/10 hover:bg-white/5 text-slate-300 font-semibold py-3 rounded-xl transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
         </div>
       )}
+
+      {/* Modal Lesson Creation */}
+      {showCreateLessonModal && (
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleCreateLessonSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-8 space-y-5 text-left animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-lg">Create New Lesson</h3>
+              <button type="button" onClick={() => setShowCreateLessonModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Title</label>
+              <input
+                type="text"
+                required
+                value={lessonTitle}
+                onChange={e => setLessonTitle(e.target.value)}
+                placeholder="Enter lesson title"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none font-semibold text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Description</label>
+              <textarea
+                rows={2}
+                value={lessonDesc}
+                onChange={e => setLessonDesc(e.target.value)}
+                placeholder="Enter lesson description"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none resize-none font-semibold text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Thumbnail</label>
+              <div className="border-2 border-dashed border-slate-200 hover:border-indigo-500/40 rounded-xl p-5 text-center hover:bg-slate-50 transition-all relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => setLessonThumbnail(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="h-6 w-6 mx-auto text-slate-400 mb-1.5" />
+                <p className="text-xs font-bold text-slate-600">{lessonThumbnail ? 'Image loaded' : 'Drag & drop an image here, or click to browse'}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5 font-medium">PNG, JPG up to 5MB</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                {currentLanguage === 'en' ? 'Target Class Group' : 'المجموعة الدراسية المستهدفة'}
+              </label>
+              <select
+                value={lessonTargetClass}
+                onChange={e => setLessonTargetClass(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-indigo-600 font-semibold text-slate-700 cursor-pointer text-left"
+              >
+                {classes.length > 0 ? (
+                  classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))
+                ) : (
+                  <option value="">{currentLanguage === 'en' ? 'No classes found' : 'لا توجد فصول دراسية'}</option>
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status</label>
+              <div className="grid grid-cols-3 gap-3">
+                {(['draft', 'published', 'scheduled'] as const).map(status => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setLessonStatus(status)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition-all capitalize ${lessonStatus === status ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                  >
+                    {status === 'published' ? 'Publish Now' : status === 'scheduled' ? 'Schedule' : 'Draft'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 flex items-center justify-center gap-2"
+              >
+                <span>Create & Add Sections</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateLessonModal(false)}
+                className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Reusable Linking Modal */}
+      {assignModalConfig && (
+        <AssignLessonsToGroupModal
+          mode={assignModalConfig.mode}
+          sourceId={assignModalConfig.sourceId}
+          gradeFilter={assignModalConfig.gradeFilter}
+          isOptionalStep={assignModalConfig.isOptionalStep}
+          onAssign={(linkedIds) => {
+            updateLessonGroupLinks({
+              lessonId: assignModalConfig.mode === 'lesson-to-groups' ? assignModalConfig.sourceId : undefined,
+              groupId: assignModalConfig.mode === 'group-to-lessons' ? assignModalConfig.sourceId : undefined,
+              linkedIds
+            });
+            setAssignModalConfig(null);
+          }}
+          onCreateNew={
+            assignModalConfig.mode === 'group-to-lessons'
+              ? () => {
+                setLessonTargetClass(assignModalConfig.sourceId);
+                setPreSelectedGroupId(assignModalConfig.sourceId);
+                setShowCreateLessonModal(true);
+              }
+              : undefined
+          }
+          onClose={() => setAssignModalConfig(null)}
+        />
+      )}
+
       {/* Generate with AI Modal */}
       {showAIGenerator && (
         <AIGeneratorModal
@@ -1159,7 +1301,7 @@ export default function ContentManager() {
               folderId: folders.length > 0 ? folders[0].id : 'unassigned'
             };
             addQuestion(generatedQ);
-            
+
             // If in builder, add to the active section
             if (showBuilder && builderLesson && selectedSectionId) {
               const sec = builderLesson.sections.find(s => s.id === selectedSectionId);

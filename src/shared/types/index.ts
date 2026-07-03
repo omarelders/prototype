@@ -32,8 +32,11 @@ export interface Lesson {
   description: string;
   thumbnailUrl?: string;
   status: 'published' | 'draft' | 'scheduled';
+  activationDate?: string;
   targetClass: string;
   sections: LessonSection[];
+  grade?: 'Grade 1' | 'Grade 2' | 'Grade 3';
+  subject?: string;
 }
 
 export interface ClassGroup {
@@ -42,6 +45,7 @@ export interface ClassGroup {
   description: string;
   lessonIds: string[];
   examIds: string[];
+  grade?: 'Grade 1' | 'Grade 2' | 'Grade 3';
 }
 
 export interface Exam {

@@ -6,6 +6,7 @@ import { Settings as DevIcon, RefreshCw, Layers, X } from 'lucide-react';
 // Level 1 imports
 import LandingPage from './apps/public-site/landing/LandingPage';
 import OnboardingWizard from './apps/public-site/onboarding/OnboardingWizard';
+import TeacherLandingPage from './apps/public-site/landing/TeacherLandingPage';
 
 // Level 2 imports
 import TeacherDashboardLayout from './apps/teacher-dashboard/TeacherDashboardLayout';
@@ -16,7 +17,6 @@ import ExamsManager from './apps/teacher-dashboard/exams/ExamsManager';
 import StudentsManager from './apps/teacher-dashboard/students/StudentsManager';
 import ActivationManager from './apps/teacher-dashboard/activation/ActivationManager';
 import CalendarView from './apps/teacher-dashboard/calendar/CalendarView';
-import CommunicationCenter from './apps/teacher-dashboard/communication/CommunicationCenter';
 import FinanceDashboard from './apps/teacher-dashboard/finance/FinanceDashboard';
 import AnalyticsDashboard from './apps/teacher-dashboard/analytics/AnalyticsDashboard';
 import SettingsPanel from './apps/teacher-dashboard/settings/SettingsPanel';
@@ -62,6 +62,9 @@ function AppContent() {
       
       {currentRole === 'onboarding' && <OnboardingWizard />}
 
+      {/* 1.5. Level 1.5: Teacher's Custom Landing Page */}
+      {currentRole === 'student-landing' && <TeacherLandingPage />}
+
       {/* 2. Level 2: Teacher Dashboard */}
       {currentRole === 'teacher' && (
         <TeacherDashboardLayout activeTab={teacherTab} setActiveTab={setTeacherTab}>
@@ -72,7 +75,6 @@ function AppContent() {
           {teacherTab === 'students' && <StudentsManager />}
           {teacherTab === 'activation' && <ActivationManager />}
           {teacherTab === 'calendar' && <CalendarView />}
-          {teacherTab === 'communication' && <CommunicationCenter />}
           {teacherTab === 'finance' && <FinanceDashboard />}
           {teacherTab === 'analytics' && <AnalyticsDashboard />}
           {teacherTab === 'settings' && <SettingsPanel />}
@@ -179,6 +181,14 @@ function AppContent() {
                   }`}
                 >
                   Student Portal
+                </button>
+                <button 
+                  onClick={() => setRole('student-landing')}
+                  className={`col-span-2 px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'student-landing' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Student Landing
                 </button>
               </div>
             </div>

@@ -17,8 +17,8 @@ import {
 interface AppStateContextProps {
   currentLanguage: 'en' | 'ar';
   setLanguage: (lang: 'en' | 'ar') => void;
-  currentRole: 'visitor' | 'onboarding' | 'teacher' | 'student';
-  setRole: (role: 'visitor' | 'onboarding' | 'teacher' | 'student') => void;
+  currentRole: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing';
+  setRole: (role: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing') => void;
   
   // Custom teacher levels
   activeLevels: string[];
@@ -68,6 +68,7 @@ interface AppStateContextProps {
   deleteLesson: (lessonId: string) => void;
   addClass: (cls: ClassGroup) => void;
   updateClass: (cls: ClassGroup) => void;
+  updateLessonGroupLinks: (payload: { lessonId?: string; groupId?: string; linkedIds: string[] }) => void;
   addExam: (exam: Exam) => void;
   updateExam: (exam: Exam) => void;
   deleteExam: (examId: string) => void;
@@ -215,7 +216,9 @@ const defaultLessons: Lesson[] = [
         type: 'exercises',
         exerciseQuestionIds: ['q-1']
       }
-    ]
+    ],
+    grade: 'Grade 1',
+    subject: 'Chemistry'
   },
   {
     id: 'l-2',
@@ -241,7 +244,9 @@ const defaultLessons: Lesson[] = [
         type: 'exercises',
         exerciseQuestionIds: ['q-2', 'q-3']
       }
-    ]
+    ],
+    grade: 'Grade 1',
+    subject: 'Physics'
   }
 ];
 
@@ -251,7 +256,8 @@ const defaultClasses: ClassGroup[] = [
     name: 'Grade 12 - Scientific Section Group A',
     description: 'Highschool Third Year (الثانوية العامة) physics and chemistry curriculum group.',
     lessonIds: ['l-1', 'l-2'],
-    examIds: ['e-1']
+    examIds: ['e-1'],
+    grade: 'Grade 1'
   }
 ];
 
@@ -298,9 +304,131 @@ const defaultStudents: Student[] = [
     status: 'pending',
     progress: 0,
     lastSeen: '2026-06-30T09:12:00Z',
-    paymentProofUrl: 'vodafone_cash_receipt.png', // Simulated placeholder
+    paymentProofUrl: 'vodafone_cash_receipt.png',
     paymentAmount: 150,
     paymentDate: '2026-06-30'
+  },
+  {
+    id: 'st-4',
+    name: 'Sara Ahmed',
+    email: 'sara.ahmed@outlook.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'pending',
+    progress: 0,
+    lastSeen: '2026-07-01T14:22:00Z',
+    paymentProofUrl: 'vodafone_cash_receipt.png',
+    paymentAmount: 150,
+    paymentDate: '2026-07-01'
+  },
+  {
+    id: 'st-5',
+    name: 'Mazen Khaled',
+    email: 'mazen.khaled@gmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'pending',
+    progress: 0,
+    lastSeen: '2026-07-02T10:05:00Z',
+    paymentProofUrl: 'vodafone_cash_receipt.png',
+    paymentAmount: 150,
+    paymentDate: '2026-07-02'
+  },
+  {
+    id: 'st-6',
+    name: 'Mariam Hassan',
+    email: 'mariam.hassan@yahoo.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'pending',
+    progress: 0,
+    lastSeen: '2026-07-02T18:30:00Z',
+    paymentProofUrl: 'vodafone_cash_receipt.png',
+    paymentAmount: 150,
+    paymentDate: '2026-07-02'
+  },
+  {
+    id: 'st-7',
+    name: 'Omar Elsherif',
+    email: 'omar.sherif@gmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'pending',
+    progress: 0,
+    lastSeen: '2026-07-02T22:15:00Z',
+    paymentProofUrl: 'vodafone_cash_receipt.png',
+    paymentAmount: 150,
+    paymentDate: '2026-07-02'
+  },
+  {
+    id: 'st-8',
+    name: 'Kareem Fahmy',
+    email: 'kareem.fahmy@hotmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 90,
+    lastSeen: '2026-07-02T21:40:00Z'
+  },
+  {
+    id: 'st-9',
+    name: 'Hoda Mourad',
+    email: 'hoda.mourad@gmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 65,
+    lastSeen: '2026-07-01T11:10:00Z'
+  },
+  {
+    id: 'st-10',
+    name: 'Tarek Soliman',
+    email: 'tarek.soliman@gmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 55,
+    lastSeen: '2026-07-02T09:30:00Z'
+  },
+  {
+    id: 'st-11',
+    name: 'Zeinab Omar',
+    email: 'zeinab.omar@yahoo.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 80,
+    lastSeen: '2026-07-02T16:50:00Z'
+  },
+  {
+    id: 'st-12',
+    name: 'Farida Adel',
+    email: 'farida.adel@outlook.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 30,
+    lastSeen: '2026-06-30T15:20:00Z'
+  },
+  {
+    id: 'st-13',
+    name: 'Mostafa Kamel',
+    email: 'mostafa.kamel@gmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 45,
+    lastSeen: '2026-07-01T17:45:00Z'
+  },
+  {
+    id: 'st-14',
+    name: 'Hana Elwy',
+    email: 'hana.elwy@gmail.com',
+    classId: 'c-1',
+    subscriptionType: 'monthly',
+    status: 'active',
+    progress: 85,
+    lastSeen: '2026-07-02T23:10:00Z'
   }
 ];
 
@@ -372,9 +500,9 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentLanguage, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('ab_lang') as 'en' | 'ar') || 'en';
   });
-  const [currentRole, setRole] = useState<'visitor' | 'onboarding' | 'teacher' | 'student'>(() => {
+  const [currentRole, setRole] = useState<'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing'>(() => {
     const saved = localStorage.getItem('ab_role');
-    if (saved === 'onboarding' || saved === 'teacher' || saved === 'student') return saved;
+    if (saved === 'onboarding' || saved === 'teacher' || saved === 'student' || saved === 'student-landing') return saved;
     return 'visitor';
   });
 
@@ -431,7 +559,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [lessons, setLessons] = useState<Lesson[]>(() => loadState('ab_lessons', defaultLessons));
   const [classes, setClasses] = useState<ClassGroup[]>(() => loadState('ab_classes', defaultClasses));
   const [exams, setExams] = useState<Exam[]>(() => loadState('ab_exams', defaultExams));
-  const [students, setStudents] = useState<Student[]>(() => loadState('ab_students', defaultStudents));
+  const [students, setStudents] = useState<Student[]>(() => loadState('ab_students_v3', defaultStudents));
   const [submissions, setSubmissions] = useState<ExamSubmission[]>(() => loadState('ab_submissions', defaultSubmissions));
   const [coupons, setCoupons] = useState<Coupon[]>(() => loadState('ab_coupons', defaultCoupons));
   const [announcements, setAnnouncements] = useState<Announcement[]>(() => loadState('ab_announcements', defaultAnnouncements));
@@ -450,7 +578,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('ab_lessons', JSON.stringify(lessons));
     localStorage.setItem('ab_classes', JSON.stringify(classes));
     localStorage.setItem('ab_exams', JSON.stringify(exams));
-    localStorage.setItem('ab_students', JSON.stringify(students));
+    localStorage.setItem('ab_students_v3', JSON.stringify(students));
     localStorage.setItem('ab_submissions', JSON.stringify(submissions));
     localStorage.setItem('ab_coupons', JSON.stringify(coupons));
     localStorage.setItem('ab_announcements', JSON.stringify(announcements));
@@ -505,6 +633,29 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addClass = (cls: ClassGroup) => setClasses(prev => [...prev, cls]);
   const updateClass = (updated: ClassGroup) => {
     setClasses(prev => prev.map(c => c.id === updated.id ? updated : c));
+  };
+  const updateLessonGroupLinks = (payload: { lessonId?: string; groupId?: string; linkedIds: string[] }) => {
+    if (payload.lessonId) {
+      const { lessonId, linkedIds } = payload;
+      setClasses(prev => prev.map(cls => {
+        const isLinked = linkedIds.includes(cls.id);
+        const hasLesson = cls.lessonIds.includes(lessonId);
+        if (isLinked && !hasLesson) {
+          return { ...cls, lessonIds: [...cls.lessonIds, lessonId] };
+        } else if (!isLinked && hasLesson) {
+          return { ...cls, lessonIds: cls.lessonIds.filter(id => id !== lessonId) };
+        }
+        return cls;
+      }));
+    } else if (payload.groupId) {
+      const { groupId, linkedIds } = payload;
+      setClasses(prev => prev.map(cls => {
+        if (cls.id === groupId) {
+          return { ...cls, lessonIds: linkedIds };
+        }
+        return cls;
+      }));
+    }
   };
 
   const addExam = (exam: Exam) => {
@@ -610,7 +761,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       folders, questions, lessons, classes, exams, students, submissions, coupons, announcements, tickets, events,
       walletBalance, walletTransactions,
       addFolder, deleteFolder, addQuestion, updateQuestion, deleteQuestion,
-      addLesson, updateLesson, deleteLesson, addClass, updateClass,
+      addLesson, updateLesson, deleteLesson, addClass, updateClass, updateLessonGroupLinks,
       addExam, updateExam, deleteExam,
       addStudent, updateStudent, confirmStudentPayment, rejectStudentPayment,
       addSubmission, updateSubmission, addCoupon, deleteCoupon, addAnnouncement, addTicketMessage, addTicket, addEvent,

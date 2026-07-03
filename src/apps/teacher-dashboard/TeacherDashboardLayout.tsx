@@ -98,7 +98,7 @@ function SidebarContent({ activeTab, setActiveTab, onClose, t, currentLanguage, 
       <div className="p-4 border-t border-slate-800 space-y-2">
         <button
           onClick={() => {
-            setRole('student');
+            setRole('student-landing');
             if (onClose) onClose();
           }}
           className="w-full flex items-center justify-center gap-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
@@ -165,8 +165,7 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
         students: "Student Accounts",
         activation: "Access Activation",
         calendar: "Schedule Calendar",
-        communication: "Communication Center",
-        finance: "Financial Ledger",
+        finance: "Finance & Profits",
         analytics: "Advanced Analytics",
         settings: "Platform Settings"
       },
@@ -208,8 +207,7 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
         students: "إدارة حسابات الطلاب",
         activation: "تفعيل وجدولة المحتوى",
         calendar: "جدول المواعيد والأنشطة",
-        communication: "مركز الاتصالات والرسائل",
-        finance: "الحسابات والأرباح",
+        finance: "المالية والأرباح",
         analytics: "التحليلات ومستوى الطلاب",
         settings: "إعدادات المنصة"
       },
@@ -260,7 +258,6 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
         { id: 'students', label: t.menu.students, icon: Users },
         { id: 'activation', label: t.menu.activation, icon: Zap },
         { id: 'calendar', label: t.menu.calendar, icon: Calendar },
-        { id: 'communication', label: t.menu.communication, icon: MessageSquare },
       ]
     },
     {
@@ -354,7 +351,7 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
             </button>
 
             <button
-              onClick={() => setRole('student')}
+              onClick={() => setRole('student-landing')}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-100 transition-all hover:-translate-y-0.5 active:translate-y-0"
             >
               <span>{t.previewStudent}</span>

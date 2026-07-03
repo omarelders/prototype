@@ -336,30 +336,31 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 items-stretch">
-            {/* Free */}
+            {/* Free / Basic */}
             <div className="bg-white rounded-2xl border border-slate-200 p-8 flex flex-col justify-between shadow-sm relative">
               <div>
                 <h3 className="text-xl font-bold text-slate-950 mb-1">{t.free}</h3>
                 <div className="my-6 flex items-baseline">
-                  <span className="text-4xl font-extrabold text-slate-900">{t.freePrice}</span>
+                  <span className="text-4xl font-extrabold text-slate-900">{currentLanguage === 'en' ? '500 EGP' : '500 ج.م'}</span>
+                  <span className="text-slate-500 text-sm ml-1.5">{t.perMonth}</span>
                 </div>
                 <div className="border-t border-slate-100 my-6" />
                 <ul className="space-y-4 text-sm text-slate-600">
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Up to 50 active students</span>
+                    <span>{currentLanguage === 'en' ? 'Up to 200 active students' : 'حتى 200 طالب نشط'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>10 lessons / 5 exams</span>
+                    <span>{currentLanguage === 'en' ? '50 GB Video Bandwidth' : '50 جيجابايت سعة رفع الفيديوهات'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Manual activation via Receipt upload</span>
+                    <span>{currentLanguage === 'en' ? '100 AI Generation Credits' : '100 رصيد لتوليد الأسئلة بالذكاء الاصطناعي'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Standard student portal</span>
+                    <span>{currentLanguage === 'en' ? 'Standard student portal' : 'بوابة الطالب الأساسية'}</span>
                   </li>
                 </ul>
               </div>
@@ -379,30 +380,30 @@ export default function LandingPage() {
               <div>
                 <h3 className="text-xl font-bold text-slate-950 mb-1">{t.pro}</h3>
                 <div className="my-6 flex items-baseline">
-                  <span className="text-4xl font-extrabold text-slate-900">{t.proPrice}</span>
+                  <span className="text-4xl font-extrabold text-slate-900">{currentLanguage === 'en' ? '950 EGP' : '950 ج.م'}</span>
                   <span className="text-slate-500 text-sm ml-1.5">{t.perMonth}</span>
                 </div>
                 <div className="border-t border-slate-100 my-6" />
                 <ul className="space-y-4 text-sm text-slate-600">
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                    <span className="font-semibold text-slate-800">Up to 500 active students</span>
+                    <span className="font-semibold text-slate-800">{currentLanguage === 'en' ? 'Up to 1,000 active students' : 'حتى 1,000 طالب نشط'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                    <span>Unlimited lessons & exams</span>
+                    <span>{currentLanguage === 'en' ? '250 GB Video Bandwidth' : '250 جيجابايت سعة رفع الفيديوهات'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                    <span className="font-semibold text-slate-800">AI Question generator (50/month)</span>
+                    <span className="font-semibold text-slate-800">{currentLanguage === 'en' ? '500 AI Generation Credits' : '500 رصيد للذكاء الاصطناعي'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                    <span>Detailed student performance stats</span>
+                    <span>{currentLanguage === 'en' ? 'Detailed student performance stats' : 'إحصائيات أداء تفصيلية للطلاب'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                    <span>Customizable domain name</span>
+                    <span>{currentLanguage === 'en' ? 'Customizable domain name' : 'رابط منصة مخصص'}</span>
                   </li>
                 </ul>
               </div>
@@ -419,26 +420,26 @@ export default function LandingPage() {
               <div>
                 <h3 className="text-xl font-bold text-slate-950 mb-1">{t.premium}</h3>
                 <div className="my-6 flex items-baseline">
-                  <span className="text-4xl font-extrabold text-slate-900">{t.premiumPrice}</span>
+                  <span className="text-4xl font-extrabold text-slate-900">{currentLanguage === 'en' ? '1,900 EGP' : '1,900 ج.م'}</span>
                   <span className="text-slate-500 text-sm ml-1.5">{t.perMonth}</span>
                 </div>
                 <div className="border-t border-slate-100 my-6" />
                 <ul className="space-y-4 text-sm text-slate-600">
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span className="font-semibold text-slate-800">Unlimited students</span>
+                    <span className="font-semibold text-slate-800">{currentLanguage === 'en' ? 'Unlimited active students' : 'عدد غير محدود من الطلاب'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Full AI Generator (Unlimited)</span>
+                    <span>{currentLanguage === 'en' ? 'Unlimited Video Bandwidth' : 'سعة رفع فيديوهات غير محدودة'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>Integrate custom payment gateways</span>
+                    <span>{currentLanguage === 'en' ? 'Unlimited AI Generation Credits' : 'رصيد غير محدود للذكاء الاصطناعي'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>24/7 dedicated local support & training</span>
+                    <span>{currentLanguage === 'en' ? '24/7 dedicated local support & training' : 'دعم فني وتدريب مخصص على مدار الساعة'}</span>
                   </li>
                 </ul>
               </div>

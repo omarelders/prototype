@@ -9,7 +9,6 @@ import {
   Calendar as CalendarIcon, 
   ArrowRight, 
   Plus,
-  MessageSquare,
   ShieldAlert
 } from 'lucide-react';
 
@@ -130,10 +129,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
             <Plus className="h-4 w-4" />
             <span>{currentLanguage === 'en' ? 'New Exam' : 'اختبار جديد'}</span>
           </button>
-          <button onClick={() => onNavigate('communication')} className="whitespace-nowrap px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
-            <MessageSquare className="h-4 w-4" />
-            <span>{currentLanguage === 'en' ? 'Message' : 'رسالة'}</span>
-          </button>
+
         </div>
       </div>
 

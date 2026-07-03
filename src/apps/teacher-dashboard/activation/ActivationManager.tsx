@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
-import { BookOpen, FileSpreadsheet, Layers, Calendar, Zap, AlertCircle } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, Layers, Calendar, Zap, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function ActivationManager() {
-  const { currentLanguage, lessons, exams } = useAppState();
+  const { currentLanguage, lessons, exams, updateLesson, updateExam } = useAppState();
   const [subTab, setSubTab] = useState<'lessons' | 'exams'>('lessons');
+
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleTarget, setScheduleTarget] = useState<{type: 'lesson'|'exam', id: string, title: string, currentDate: string} | null>(null);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
 
   // Translations
   const dict = {
@@ -14,10 +19,13 @@ export default function ActivationManager() {
       colTitle: "Item Name",
       colRelease: "Release Mode",
       colVisibility: "Public Visibility",
-      activeNow: "Active / Released",
-      scheduled: "Scheduled for",
+      activeNow: "Active",
+      draft: "Draft",
+      scheduled: "Scheduled",
       scheduleBtn: "Change Schedule",
-      saveBtn: "Apply Controls"
+      saveBtn: "Apply Controls",
+      toggleActive: "Publish immediately",
+      toggleDraft: "Hide from students"
     },
     ar: {
       lessonsTitle: "تفعيل وجدولة الدروس",
@@ -25,23 +33,94 @@ export default function ActivationManager() {
       colTitle: "اسم العنصر الأكاديمي",
       colRelease: "طريقة الجدولة والإطلاق",
       colVisibility: "الظهور للطلاب",
-      activeNow: "نشط ومعروض للطلاب",
-      scheduled: "مجدول للإطلاق بتاريخ",
-      scheduleBtn: "تعديل موعد الإطلاق",
-      saveBtn: "تطبيق التغييرات"
+      activeNow: "نشط",
+      draft: "مسودة",
+      scheduled: "مجدول",
+      scheduleBtn: "تعديل الموعد",
+      saveBtn: "تطبيق التغييرات",
+      toggleActive: "نشر فوراً",
+      toggleDraft: "إخفاء عن الطلاب"
     }
   };
 
   const t = dict[currentLanguage];
 
+  const handleLessonToggle = (lessonId: string, currentStatus: string) => {
+    const lesson = lessons.find(l => l.id === lessonId);
+    if (lesson) {
+      const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+      updateLesson({ ...lesson, status: newStatus });
+    }
+  };
+
+  const handleExamToggle = (examId: string, currentStatus: string) => {
+    const exam = exams.find(e => e.id === examId);
+    if (exam) {
+      const newStatus = currentStatus === 'active' ? 'scheduled' : 'active';
+      // If it's being toggled to scheduled but has no date, default to tomorrow
+      let date = exam.activationDate;
+      if (newStatus === 'scheduled' && !date) {
+        const tmrw = new Date();
+        tmrw.setDate(tmrw.getDate() + 1);
+        date = tmrw.toISOString();
+      }
+      updateExam({ ...exam, status: newStatus, activationDate: date });
+    }
+  };
+
+  const openScheduleModal = (type: 'lesson'|'exam', item: any) => {
+    setScheduleTarget({
+      type,
+      id: item.id,
+      title: item.title,
+      currentDate: item.activationDate || ''
+    });
+    if (item.activationDate) {
+      const d = new Date(item.activationDate);
+      setScheduleDate(d.toISOString().split('T')[0]);
+      setScheduleTime(d.toISOString().substring(11,16));
+    } else {
+      setScheduleDate('');
+      setScheduleTime('');
+    }
+    setScheduleModalOpen(true);
+  };
+
+  const handleSaveSchedule = () => {
+    if (!scheduleTarget || !scheduleDate) return;
+    const newDate = scheduleTime ? `${scheduleDate}T${scheduleTime}:00Z` : `${scheduleDate}T00:00:00Z`;
+    
+    if (scheduleTarget.type === 'lesson') {
+      const lesson = lessons.find(l => l.id === scheduleTarget.id);
+      if (lesson) {
+        updateLesson({ ...lesson, status: 'scheduled', activationDate: newDate });
+      }
+    } else {
+      const exam = exams.find(e => e.id === scheduleTarget.id);
+      if (exam) {
+        updateExam({ ...exam, status: 'scheduled', activationDate: newDate });
+      }
+    }
+    setScheduleModalOpen(false);
+  };
+
   return (
-    <div className="space-y-6 text-left">
+    <div className={`space-y-6 ${currentLanguage === 'ar' ? 'text-right' : 'text-left'}`}>
+      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-indigo-900 mb-2">
+          {currentLanguage === 'en' ? 'Content Activation UX Showcase' : 'عرض تجربة المستخدم لتفعيل المحتوى'}
+        </h2>
+        <p className="text-sm text-indigo-700/80 max-w-3xl leading-relaxed">
+          {currentLanguage === 'en' ? 'Great UX for activating content involves clear visual status indicators (colors and icons), immediate toggle actions to publish/unpublish without reloading, and scheduling abilities. It should feel instantaneous and secure.' : 'تجربة المستخدم الجيدة لتفعيل المحتوى تتضمن مؤشرات بصرية واضحة للحالة (ألوان وأيقونات)، وإجراءات تبديل فورية للنشر/الإلغاء دون إعادة تحميل، وقدرات جدولة. يجب أن تبدو فورية وآمنة.'}
+        </p>
+      </div>
+
       {/* Sub tabs switcher */}
       <div className="flex gap-4 border-b border-slate-200 pb-3">
         <button 
           onClick={() => setSubTab('lessons')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-            subTab === 'lessons' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
+            subTab === 'lessons' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105' : 'text-slate-600 hover:bg-slate-100 hover:scale-105'
           }`}
         >
           <BookOpen className="h-4 w-4" />
@@ -50,8 +129,8 @@ export default function ActivationManager() {
         
         <button 
           onClick={() => setSubTab('exams')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-            subTab === 'exams' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
+            subTab === 'exams' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105' : 'text-slate-600 hover:bg-slate-100 hover:scale-105'
           }`}
         >
           <FileSpreadsheet className="h-4 w-4" />
@@ -59,87 +138,204 @@ export default function ActivationManager() {
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden p-6 space-y-4">
-        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-          <h3 className="font-extrabold text-slate-900 text-sm">
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden p-6 space-y-4">
+        <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+          <h3 className="font-extrabold text-slate-900 text-base">
             {subTab === 'lessons' && t.lessonsTitle}
             {subTab === 'exams' && t.examsTitle}
           </h3>
-          <span className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">
-            <Zap className="h-3.5 w-3.5 text-indigo-600" />
+          <span className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+            <Zap className="h-3.5 w-3.5 text-amber-500" />
             <span>{currentLanguage === 'en' ? 'Real-time Sync' : 'مزامنة فورية'}</span>
           </span>
         </div>
 
         <div className="space-y-4">
-          {subTab === 'lessons' && lessons.map(lesson => (
-            <div key={lesson.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 border border-slate-200/60 rounded-xl gap-4">
-              <div className="space-y-0.5">
-                <h4 className="font-bold text-slate-800 text-xs">{lesson.title}</h4>
-                <p className="text-[10px] text-slate-500 font-medium">
+          {subTab === 'lessons' && lessons.map(lesson => {
+            const isPublished = lesson.status === 'published';
+            const isScheduled = lesson.status === 'scheduled';
+            return (
+            <div key={lesson.id} className={`group flex flex-col sm:flex-row sm:items-center justify-between p-5 border rounded-2xl gap-4 transition-all duration-300 ${isPublished ? 'bg-emerald-50/30 border-emerald-100' : isScheduled ? 'bg-amber-50/30 border-amber-100' : 'bg-slate-50 border-slate-200/60'}`}>
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-800 text-sm">{lesson.title}</h4>
+                  {isPublished ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                      <CheckCircle2 className="w-3 h-3" /> {t.activeNow}
+                    </span>
+                  ) : isScheduled ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <Calendar className="w-3 h-3" /> {t.scheduled}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                      <XCircle className="w-3 h-3" /> {t.draft}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 font-medium">
                   {currentLanguage === 'en' ? 'Target: Grade 12 - Group A' : 'المستهدف: الصف الثالث الثانوي - مجموعة أ'}
+                </p>
+                {isScheduled && lesson.activationDate && (
+                  <p className="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-1">
+                    <Clock className="w-3 h-3" />
+                    {currentLanguage === 'en' ? 'Will activate on: ' : 'سيتم التفعيل في: '}
+                    {new Date(lesson.activationDate).toLocaleDateString()} {new Date(lesson.activationDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col sm:items-end items-start gap-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={isPublished}
+                      onChange={() => handleLessonToggle(lesson.id, lesson.status)}
+                    />
+                    <div className="relative w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner rtl:peer-checked:after:-translate-x-full"></div>
+                    <span className="ms-3 text-xs font-bold text-slate-600">
+                      {isPublished ? t.toggleDraft : t.toggleActive}
+                    </span>
+                  </label>
+                  
+                  <button onClick={() => openScheduleModal('lesson', lesson)} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                    <Clock className="w-3 h-3" />
+                    {t.scheduleBtn}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )})}
+
+          {subTab === 'exams' && exams.map(exam => {
+            const isActive = exam.status === 'active';
+            const isScheduled = exam.status === 'scheduled';
+            return (
+            <div key={exam.id} className={`group flex flex-col sm:flex-row sm:items-center justify-between p-5 border rounded-2xl gap-4 transition-all duration-300 ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-amber-50/30 border-amber-100'}`}>
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-800 text-sm">{exam.title}</h4>
+                  {isActive ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                      <Zap className="w-3 h-3" /> {t.activeNow}
+                    </span>
+                  ) : isScheduled ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <Calendar className="w-3 h-3" /> {t.scheduled}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                      <XCircle className="w-3 h-3" /> {t.draft}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 font-medium">
+                  {currentLanguage === 'en' ? `Timer: ${exam.duration} mins` : `المدة: ${exam.duration} دقيقة`}
+                </p>
+                {isScheduled && exam.activationDate && (
+                  <p className="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-1">
+                    <Clock className="w-3 h-3" />
+                    {currentLanguage === 'en' ? 'Will activate on: ' : 'سيتم التفعيل في: '}
+                    {new Date(exam.activationDate).toLocaleDateString()} {new Date(exam.activationDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col sm:items-end items-start gap-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={isActive}
+                      onChange={() => handleExamToggle(exam.id, exam.status)}
+                    />
+                    <div className="relative w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 shadow-inner rtl:peer-checked:after:-translate-x-full"></div>
+                    <span className="ms-3 text-xs font-bold text-slate-600">
+                      {isActive ? t.toggleDraft : t.toggleActive}
+                    </span>
+                  </label>
+                  
+                  <button onClick={() => openScheduleModal('exam', exam)} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                    <Clock className="w-3 h-3" />
+                    {t.scheduleBtn}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )})}
+        </div>
+      </div>
+
+      {/* Scheduling Modal Overlay */}
+      {scheduleModalOpen && scheduleTarget && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
+              <h3 className="font-extrabold text-indigo-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+                {currentLanguage === 'en' ? 'Schedule Publishing' : 'جدولة النشر'}
+              </h3>
+              <button onClick={() => setScheduleModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1 uppercase tracking-wide">
+                  {currentLanguage === 'en' ? 'Target Content' : 'المحتوى المستهدف'}
+                </p>
+                <p className="text-sm font-bold text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-100 truncate">
+                  {scheduleTarget.title}
                 </p>
               </div>
               
-              <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
-                <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                  <Check className="h-3.5 w-3.5" />
-                  <span>{t.activeNow}</span>
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">
+                    {currentLanguage === 'en' ? 'Date' : 'التاريخ'}
+                  </label>
+                  <input 
+                    type="date" 
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                  />
                 </div>
-                
-                <button className="text-indigo-600 hover:underline">{t.scheduleBtn}</button>
+                <div className="flex-1 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">
+                    {currentLanguage === 'en' ? 'Time' : 'الوقت'}
+                  </label>
+                  <input 
+                    type="time" 
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                  />
+                </div>
               </div>
             </div>
-          ))}
-
-          {subTab === 'exams' && exams.map(exam => (
-            <div key={exam.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 border border-slate-200/60 rounded-xl gap-4">
-              <div className="space-y-0.5">
-                <h4 className="font-bold text-slate-800 text-xs">{exam.title}</h4>
-                <p className="text-[10px] text-slate-500 font-medium">
-                  {currentLanguage === 'en' ? `Timer: ${exam.duration} mins` : `المدة: ${exam.duration} دقيقة`}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
-                {exam.status === 'active' ? (
-                  <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                    <Check className="h-3.5 w-3.5" />
-                    <span>{t.activeNow}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md font-mono">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{t.scheduled} {exam.activationDate.split('T')[0]}</span>
-                  </div>
-                )}
-
-                <button className="text-indigo-600 hover:underline">{t.scheduleBtn}</button>
-              </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button 
+                onClick={() => setScheduleModalOpen(false)}
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+              >
+                {currentLanguage === 'en' ? 'Cancel' : 'إلغاء'}
+              </button>
+              <button 
+                onClick={handleSaveSchedule}
+                disabled={!scheduleDate}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-md shadow-indigo-200 transition-colors flex items-center gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                {currentLanguage === 'en' ? 'Save Schedule' : 'حفظ الموعد'}
+              </button>
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  );
-}
-
-// Inline Check Icon helper to prevent import issue
-function Check(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   );
 }
