@@ -26,6 +26,7 @@ import {
   Upload,
   Download
 } from 'lucide-react';
+import StudentProfileView from './StudentProfileView';
 
 export default function StudentsManager() {
   const { 
@@ -234,8 +235,12 @@ export default function StudentsManager() {
 
   return (
     <div className={`space-y-6 ${currentLanguage === 'ar' ? 'text-right' : 'text-left'}`}>
-      {/* Alert Banner for pending Vodafone cash activations */}
-      {pendingStudents.length > 0 && (
+      {selectedStudent ? (
+        <StudentProfileView student={selectedStudent} onBack={() => setSelectedStudent(null)} />
+      ) : (
+        <>
+          {/* Alert Banner for pending Vodafone cash activations */}
+          {pendingStudents.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-amber-100 p-2.5 rounded-xl text-amber-700">
@@ -318,9 +323,9 @@ export default function StudentsManager() {
       </div>
 
       {/* Main Grid Tables */}
-      <div className="grid lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 gap-8 items-start">
         {/* Table data container */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
           {filteredList.length === 0 ? (
             <div className="p-12 text-center text-slate-400 space-y-2">
               <Users className="h-8 w-8 mx-auto text-slate-300" />
@@ -431,117 +436,9 @@ export default function StudentsManager() {
             </table>
           )}
         </div>
-
-        {/* 3. Detailed Side Profile Popup Drawer (displays inside grid on right side) */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col justify-between">
-          {selectedStudent ? (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-base">{t.detailTitle}</h3>
-                  <span className="text-[10px] font-bold text-slate-400 mt-0.5 block">{selectedStudent.email}</span>
-                </div>
-                <button onClick={() => setSelectedStudent(null)} className="text-slate-400 hover:text-slate-600">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Progress visual trackers */}
-              <div className="space-y-5 text-xs font-semibold text-slate-600">
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <BarChart3 className="h-4 w-4 text-indigo-600" />
-                    <span>{t.progressTitle}</span>
-                  </span>
-                  
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
-                    {/* Course Progress */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{t.courseSyllabus}</span>
-                        <span className="font-bold text-indigo-600">{selectedStudent.progress}%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div className="bg-indigo-600 h-2 rounded-full transition-all duration-1000" style={{ width: `${selectedStudent.progress}%` }} />
-                      </div>
-                    </div>
-
-                    {/* Average Score */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{t.avgQuizScore}</span>
-                        <span className="font-bold text-emerald-600">82%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" style={{ width: '82%' }} />
-                      </div>
-                    </div>
-
-                    {/* Attendance / Engagement */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{t.platformEngagement}</span>
-                        <span className="font-bold text-amber-600">{t.engagementHigh}</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div className="bg-amber-500 h-2 rounded-full transition-all duration-1000" style={{ width: '90%' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Exam grades summary */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <Award className="h-4 w-4 text-indigo-600" />
-                    <span>{t.gradesTitle}</span>
-                  </span>
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
-                    <div className="flex justify-between font-bold text-slate-700">
-                      <span>Unit 1 Midterm Exam</span>
-                      <span className="text-emerald-600">10 / 12 (83%)</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-slate-700">
-                      <span>Resistors Practice Set</span>
-                      <span className="text-emerald-600">4 / 5 (80%)</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payments Log history */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <History className="h-4 w-4 text-indigo-600" />
-                    <span>{t.paymentHistoryTitle}</span>
-                  </span>
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-[11px] leading-relaxed text-slate-500 font-medium">
-                    <p>● June 2026 Monthly Subscription Fee: <span className="font-bold text-slate-800">150 EGP (Paid)</span></p>
-                    <p>● May 2026 Monthly Subscription Fee: <span className="font-bold text-slate-800">150 EGP (Paid)</span></p>
-                  </div>
-                </div>
-
-                {/* Teacher notes text block */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <FileText className="h-4 w-4 text-indigo-600" />
-                    <span>{t.notesTitle}</span>
-                  </span>
-                  <textarea
-                    rows={2}
-                    placeholder={t.privateNotePlaceholder}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-600 outline-none rounded-xl text-[11px] resize-none"
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 text-slate-400 text-center space-y-3">
-              <Users className="h-8 w-8 text-slate-300" />
-              <p className="text-xs font-semibold px-6 leading-normal">{t.selectProfileMsg}</p>
-            </div>
-          )}
-        </div>
       </div>
+        </>
+      )}
 
       {/* Lightbox for Vodafone Cash Manual receipt verification */}
       {reviewReceiptStudent && (

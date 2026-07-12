@@ -8,7 +8,7 @@ export default function PricingPlans() {
   const dict = {
     en: {
       title: "Platform Subscription",
-      subtitle: "Manage your platform subscription tier to unlock more AI credits and bandwidth.",
+      subtitle: "Manage your platform subscription tier to unlock more bandwidth.",
       monthly: "/month",
       active: "Current Plan",
       features: "Included Features:",
@@ -16,7 +16,7 @@ export default function PricingPlans() {
     },
     ar: {
       title: "اشتراك المنصة",
-      subtitle: "إدارة اشتراكك في المنصة للحصول على المزيد من رصيد الذكاء الاصطناعي وسعة الرفع.",
+      subtitle: "إدارة اشتراكك في المنصة للحصول على المزيد من سعة الرفع.",
       monthly: "/شهر",
       active: "الخطة الحالية",
       features: "المميزات المشمولة:",
@@ -36,7 +36,6 @@ export default function PricingPlans() {
       features: [
         currentLanguage === 'en' ? 'Up to 200 active students' : 'حتى 200 طالب نشط',
         currentLanguage === 'en' ? '20 GB Video Bandwidth' : '20 جيجابايت سعة رفع الفيديوهات',
-        currentLanguage === 'en' ? '1000 AI Generation Credits' : '1000 رصيد للذكاء الاصطناعي',
         currentLanguage === 'en' ? 'Standard student portal' : 'بوابة الطالب الأساسية'
       ]
     },
@@ -49,7 +48,6 @@ export default function PricingPlans() {
       features: [
         currentLanguage === 'en' ? 'Up to 500 active students' : 'حتى 500 طالب نشط',
         currentLanguage === 'en' ? '50 GB Video Bandwidth' : '50 جيجابايت سعة رفع الفيديوهات',
-        currentLanguage === 'en' ? '2000 AI Generation Credits' : '2000 رصيد للذكاء الاصطناعي',
         currentLanguage === 'en' ? 'Detailed performance stats' : 'إحصائيات أداء تفصيلية'
       ]
     },
@@ -62,7 +60,6 @@ export default function PricingPlans() {
       features: [
         currentLanguage === 'en' ? 'Up to 1000 active students' : 'حتى 1000 طالب نشط',
         currentLanguage === 'en' ? '200 GB Video Bandwidth' : '200 جيجابايت سعة رفع الفيديوهات',
-        currentLanguage === 'en' ? '5000 AI Generation Credits' : '5000 رصيد للذكاء الاصطناعي',
         currentLanguage === 'en' ? 'Priority Support' : 'دعم فني مخصص'
       ]
     }

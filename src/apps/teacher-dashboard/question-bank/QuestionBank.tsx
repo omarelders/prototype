@@ -75,14 +75,6 @@ export default function QuestionBank() {
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
-  const [showAIModal, setShowAIModal] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [aiGradeLevel, setAiGradeLevel] = useState<'Grade 1' | 'Grade 2' | 'Grade 3'>('Grade 3');
-  const [aiQuestionType, setAiQuestionType] = useState<'mcq' | 'essay'>('mcq');
-  const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiGeneratedQuestion, setAiGeneratedQuestion] = useState<Question | null>(null);
-
   // Level configuration state
   const [showLevelConfigModal, setShowLevelConfigModal] = useState(false);
   const [tempActiveLevels, setTempActiveLevels] = useState<string[]>(activeLevels);
@@ -120,16 +112,6 @@ export default function QuestionBank() {
   const [qCorrect, setQCorrect] = useState(0);
   const [qModelAnswer, setQModelAnswer] = useState('');
 
-  // Sync AI grade level with active level when AI modal opens or level changes
-  React.useEffect(() => {
-    const levelInfo = allAvailableLevels.find(l => l.id === selectedLevel);
-    if (levelInfo) {
-      setAiGradeLevel((currentLanguage === 'en' ? levelInfo.en : levelInfo.ar) as any);
-    } else {
-      setAiGradeLevel('Grade 3');
-    }
-  }, [selectedLevel, currentLanguage]);
-
   const getLevelStats = (level: string) => {
     const levelF = folders.filter(f => (f.level || 'g3') === level);
     const fIds = levelF.map(f => f.id);
@@ -159,7 +141,6 @@ export default function QuestionBank() {
       allQuestions: "All Questions",
       addFolderBtn: "New Folder",
       addQuestionBtn: "New Question",
-      aiGenerateBtn: "AI Generate",
       searchPlaceholder: "Search questions...",
       filterType: "Type",
       filterDifficulty: "Difficulty",
@@ -173,15 +154,6 @@ export default function QuestionBank() {
       medium: "Medium",
       hard: "Hard",
       editorTitle: "Question Editor",
-      aiTitle: "AI Question Generator",
-      aiPromptLabel: "Describe Topic / Text Material",
-      aiPromptPlaceholder: "Example: Explain the concepts of electrical resistance and calculate values in parallel...",
-      aiSubmit: "Generate Questions",
-      aiGradeLabel: "Target Grade Level",
-      aiTypeLabel: "Question Type",
-      aiGrade1: "Grade 1",
-      aiGrade2: "Grade 2",
-      aiGrade3: "Grade 3",
       optionsLabel: "MCQ Options",
       correctLabel: "Mark Correct Option",
       modelLabel: "Grading Reference Answer",
@@ -193,12 +165,6 @@ export default function QuestionBank() {
       foldersCountText: "units",
       questionsCountText: "questions",
       noFoldersAlert: "No unit folders created for this level yet. Create a unit folder to add questions.",
-      aiReviewTitle: "Review AI Generated Question",
-      aiReviewSubtitle: "Preview how this generated question will look. You can add it to the bank, regenerate, or adjust prompt.",
-      aiApproveBtn: "Approve & Save",
-      aiRegenerateBtn: "Regenerate Question",
-      aiAdjustBtn: "Adjust Prompt",
-      aiCorrectAnswer: "Correct Option"
     },
     ar: {
       foldersTitle: "مجلدات الوحدات",
@@ -313,98 +279,6 @@ export default function QuestionBank() {
     setEditingQuestion(null);
   };
 
-  // Helper to generate a new simulated question with high-fidelity variants
-  const generateSimulatedQuestion = (): Question => {
-    const gradeLabel = aiGradeLevel === 'Grade 1' ? 'Grade 1' : aiGradeLevel === 'Grade 2' ? 'Grade 2' : 'Grade 3';
-    const gradeEmoji = aiGradeLevel === 'Grade 1' ? '📘' : aiGradeLevel === 'Grade 2' ? '📙' : '📕';
-    const randomSeed = Math.floor(Math.random() * 100);
-    const topic = aiPrompt.trim() || 'Physics';
-
-    if (aiQuestionType === 'mcq') {
-      const optionsPools = [
-        [
-          `Option A: The primary rate of change is proportional to $k [A]^2$.`,
-          `Option B: The system state satisfies the relation $\\Delta G = \\Delta H - T\\Delta S$.`,
-          `Option C: The equivalent resonance is described by $\\omega = \\frac{1}{\\sqrt{LC}}$.`,
-          `Option D: No significant correlation is found with the topic "${topic}".`
-        ],
-        [
-          `Answer A: The rate of heat transfer is governed by Fourier's law: $q = -k \\nabla T$.`,
-          `Answer B: The maximum work output is calculated using $W_{max} = -\\Delta H$.`,
-          `Answer C: The steady-state equilibrium satisfies the condition $dQ/dt = 0$.`,
-          `Answer D: The energy efficiency is given by $\\eta = 1 - \\frac{T_C}{T_H}$.`
-        ],
-        [
-          `Selection A: The electric field strength is given by $E = \\frac{V}{d}$.`,
-          `Selection B: The force is calculated using Coulomb's Law: $F = k_e \\frac{q_1 q_2}{r^2}$.`,
-          `Selection C: The total capacitance in parallel is $C_{eq} = C_1 + C_2$.`,
-          `Selection D: The magnetic flux is constant through the closed surface.`
-        ]
-      ];
-      
-      const chosenPool = optionsPools[randomSeed % optionsPools.length];
-      
-      return {
-        id: `q-ai-${Date.now()}`,
-        title: `${gradeEmoji} [AI] ${gradeLabel} (${aiDifficulty === 'easy' ? 'Easy' : aiDifficulty === 'medium' ? 'Medium' : 'Hard'}): How does the principle of "${topic}" affect the overall system equilibrium under standard conditions? (Variant #${randomSeed})`,
-        type: 'mcq',
-        difficulty: aiDifficulty,
-        options: chosenPool,
-        correctOption: randomSeed % 4,
-        folderId: selectedFolderId || ''
-      };
-    } else {
-      const essayAnswers = [
-        `To explain "${topic}" in detail, we must first define the core variables. Next, outline the boundary conditions and state equations. Finally, demonstrate a sample calculation showing how the theory correlates with practical measurements (e.g., error margin within $\\pm 5\\%$).`,
-        `The phenomenon of "${topic}" is governed by fundamental conservation laws. We analyze the system by setting up a differential equation representing the rate of change over time, then solving it using the initial state parameters.`,
-        `Begin by stating the physical interpretation of "${topic}". Highlight the key differences between the ideal model and real-world observations, focusing on dampening forces, friction, or resistance.`
-      ];
-      
-      const chosenAnswer = essayAnswers[randomSeed % essayAnswers.length];
-      
-      return {
-        id: `q-ai-${Date.now()}`,
-        title: `${gradeEmoji} [AI] ${gradeLabel} (${aiDifficulty === 'easy' ? 'Easy' : aiDifficulty === 'medium' ? 'Medium' : 'Hard'}): Discuss the physical/chemical implications of "${topic}" in high-performance applications. (Variant #${randomSeed})`,
-        type: 'essay',
-        difficulty: aiDifficulty,
-        modelAnswer: chosenAnswer,
-        folderId: selectedFolderId || ''
-      };
-    }
-  };
-
-  const runAIGeneration = () => {
-    if (!aiPrompt || !selectedFolderId) return;
-    setAiGenerating(true);
-    setTimeout(() => {
-      setAiGeneratedQuestion(generateSimulatedQuestion());
-      setAiGenerating(false);
-    }, 1200);
-  };
-
-  const handleAIGenerate = (e: React.FormEvent) => {
-    e.preventDefault();
-    runAIGeneration();
-  };
-
-  const handleApproveAIGenerated = () => {
-    if (!aiGeneratedQuestion) return;
-    addQuestion(aiGeneratedQuestion);
-    setAiGeneratedQuestion(null);
-    setShowAIModal(false);
-    setAiPrompt('');
-  };
-
-  const handleCancelAIGenerate = () => {
-    setAiGeneratedQuestion(null);
-    setShowAIModal(false);
-    setAiPrompt('');
-  };
-
-  const handleAdjustAIGenerate = () => {
-    setAiGeneratedQuestion(null);
-  };
-
   // Filter lists
   const filteredQuestions = questions.filter(q => {
     // level isolation check
@@ -460,8 +334,8 @@ export default function QuestionBank() {
             </h2>
             <p className="text-xs md:text-sm font-semibold text-slate-400 mt-1 max-w-xl leading-relaxed">
               {currentLanguage === 'en' 
-                ? "Organize your curriculum folders, manually author items, or generate new learning assessments using AI for each specific grade level."
-                : "نظّم المجلدات الدراسية لكل مرحلة، واصنع أسئلتك يدويًا أو ولّدها بالذكاء الاصطناعي مع تقسيم ذكي وسلس للمستويات الدراسية."}
+                ? "Organize your curriculum folders and manually author items for each specific grade level."
+                : "نظّم المجلدات الدراسية لكل مرحلة، واصنع أسئلتك يدويًا مع تقسيم ذكي وسلس للمستويات الدراسية."}
             </p>
           </div>
 
@@ -653,15 +527,6 @@ export default function QuestionBank() {
                 <option value="hard">{t.hard}</option>
               </select>
 
-              {/* AI Generator Trigger */}
-              <button
-                onClick={() => setShowAIModal(true)}
-                disabled={!selectedFolderId}
-                className="bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-              >
-                <Sparkles className="h-4 w-4" />
-                <span>{t.aiGenerateBtn}</span>
-              </button>
 
               {/* Manual builder */}
               <button
@@ -770,243 +635,6 @@ export default function QuestionBank() {
         </div>
       )}
 
-      {/* 2. Modal AI Generator */}
-      {showAIModal && (
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          {aiGeneratedQuestion ? (
-            /* AI Question Review View */
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-2xl w-full p-8 space-y-6 text-left animate-fade-in my-8">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5 text-indigo-600">
-                  <Sparkles className="h-5 w-5 animate-pulse" />
-                  <h3 className="font-extrabold text-slate-950 text-sm">{t.aiReviewTitle}</h3>
-                </div>
-                <button 
-                  onClick={handleCancelAIGenerate}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <p className="text-xs font-semibold text-slate-500 leading-relaxed">
-                {t.aiReviewSubtitle}
-              </p>
-
-              {/* Student View Live Preview Card */}
-              <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50/50 shadow-inner relative">
-                <div className="flex justify-between items-center mb-5">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Preview</span>
-                  <div className="flex gap-2">
-                    <span className="bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase">
-                      {aiGeneratedQuestion.type === 'mcq' ? t.mcq : t.essay}
-                    </span>
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                      aiGeneratedQuestion.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' : 
-                      aiGeneratedQuestion.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
-                    }`}>
-                      {aiGeneratedQuestion.difficulty}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Question Title */}
-                <div className="text-base font-extrabold text-slate-900 mb-6 leading-relaxed">
-                  <MathRenderer text={aiGeneratedQuestion.title} />
-                </div>
-
-                {/* Question Body */}
-                {aiGeneratedQuestion.type === 'mcq' ? (
-                  <div className="space-y-2.5">
-                    {aiGeneratedQuestion.options?.map((opt, idx) => {
-                      const isCorrect = aiGeneratedQuestion.correctOption === idx;
-                      return (
-                        <div 
-                          key={idx} 
-                          className={`flex items-center gap-3.5 p-3 rounded-xl border-2 transition-all ${
-                            isCorrect 
-                              ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900' 
-                              : 'border-slate-200 bg-white text-slate-700'
-                          }`}
-                        >
-                          <div className={`h-5 w-5 flex-shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-extrabold ${
-                            isCorrect ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 text-slate-400'
-                          }`}>
-                            {String.fromCharCode(65 + idx)}
-                          </div>
-                          <span className="text-xs font-bold leading-relaxed flex-1">
-                            <MathRenderer text={opt} />
-                          </span>
-                          {isCorrect && (
-                            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded uppercase tracking-wide">
-                              {t.aiCorrectAnswer}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.modelLabel}</label>
-                    <div className="w-full p-4 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 leading-relaxed max-h-48 overflow-y-auto shadow-sm">
-                      <MathRenderer text={aiGeneratedQuestion.modelAnswer || ''} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Loader inside Review Modal if regenerating */}
-              {aiGenerating ? (
-                <div className="flex flex-col items-center justify-center py-6 space-y-3.5">
-                  <div className="h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-bold text-indigo-600 animate-pulse">Regenerating variant...</span>
-                </div>
-              ) : (
-                /* Actions */
-                <div className="flex flex-col sm:flex-row gap-3 pt-3">
-                  <button
-                    onClick={handleApproveAIGenerated}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md shadow-emerald-100 flex items-center justify-center gap-1.5 cursor-pointer text-xs uppercase tracking-wider"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>{t.aiApproveBtn}</span>
-                  </button>
-
-                  <button
-                    onClick={runAIGeneration}
-                    className="flex-1 bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100 font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-xs uppercase tracking-wider"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span>{t.aiRegenerateBtn}</span>
-                  </button>
-
-                  <button
-                    onClick={handleAdjustAIGenerate}
-                    className="sm:px-5 py-3.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer text-center"
-                  >
-                    {t.aiAdjustBtn}
-                  </button>
-
-                  <button
-                    onClick={handleCancelAIGenerate}
-                    className="sm:px-5 py-3.5 border border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-600 font-semibold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer text-center"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* AI Question Setup Form (Original) */
-            <form onSubmit={handleAIGenerate} className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-8 space-y-5 text-left animate-fade-in animate-duration-300">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Sparkles className="h-5 w-5" />
-                <h3 className="font-bold text-slate-900">{t.aiTitle}</h3>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">{t.aiPromptLabel}</label>
-                <textarea
-                  rows={4}
-                  required
-                  value={aiPrompt}
-                  onChange={e => setAiPrompt(e.target.value)}
-                  placeholder={t.aiPromptPlaceholder}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">{t.aiGradeLabel}</label>
-                <div className="grid grid-cols-3 gap-3.5">
-                  {(['Grade 1', 'Grade 2', 'Grade 3'] as const).map(grade => (
-                    <button
-                      key={grade}
-                      type="button"
-                      onClick={() => setAiGradeLevel(grade)}
-                      className={`py-2 rounded-xl text-xs font-bold border-2 transition-all cursor-pointer ${
-                        aiGradeLevel === grade ? 'border-indigo-600 bg-indigo-50/20 text-indigo-700' : 'border-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {grade === 'Grade 1' ? t.aiGrade1 : grade === 'Grade 2' ? t.aiGrade2 : t.aiGrade3}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">{t.aiTypeLabel}</label>
-                <div className="grid grid-cols-2 gap-3.5">
-                  <button
-                    type="button"
-                    onClick={() => setAiQuestionType('mcq')}
-                    className={`py-2 rounded-xl text-xs font-bold border-2 transition-all cursor-pointer ${
-                      aiQuestionType === 'mcq' ? 'border-indigo-600 bg-indigo-50/20 text-indigo-700' : 'border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    {t.mcq}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAiQuestionType('essay')}
-                    className={`py-2 rounded-xl text-xs font-bold border-2 transition-all cursor-pointer ${
-                      aiQuestionType === 'essay' ? 'border-indigo-600 bg-indigo-50/20 text-indigo-700' : 'border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    {t.essay}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Question difficulty level</label>
-                <div className="grid grid-cols-3 gap-3.5">
-                  {(['easy', 'medium', 'hard'] as const).map(diff => (
-                    <button
-                      key={diff}
-                      type="button"
-                      onClick={() => setAiDifficulty(diff)}
-                      className={`py-2 rounded-xl text-xs font-bold border-2 transition-all capitalize cursor-pointer ${
-                        aiDifficulty === diff ? 'border-indigo-600 bg-indigo-50/20 text-indigo-700' : 'border-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {diff}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={aiGenerating}
-                  className="flex-1 bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2 cursor-pointer text-xs"
-                >
-                  {aiGenerating ? (
-                    <>
-                      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      <span>{t.aiSubmit}</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelAIGenerate}
-                  className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl transition-all cursor-pointer text-xs"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
 
       {/* 3. Modal Question Editor */}
       {showQuestionModal && (

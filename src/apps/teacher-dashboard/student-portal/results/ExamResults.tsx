@@ -24,7 +24,7 @@ interface ExamResultsProps {
 export default function ExamResults({ submission, onNavigate }: ExamResultsProps) {
   const { currentLanguage, questions, submissions } = useAppState();
   const [activeSub, setActiveSub] = useState<ExamSubmission | null>(submission || submissions[0] || null);
-  const [selectedExplainQId, setSelectedExplainQId] = useState<string | null>(null);
+
 
   const t = {
     title: currentLanguage === 'en' ? 'Exam Results & Review' : 'نتائج الاختبار',
@@ -38,23 +38,10 @@ export default function ExamResults({ submission, onNavigate }: ExamResultsProps
     reviewTitle: currentLanguage === 'en' ? 'Question Review' : 'مراجعة الأسئلة',
     correctAns: currentLanguage === 'en' ? 'Correct Answer' : 'الإجابة الصحيحة',
     yourAns: currentLanguage === 'en' ? 'Your Answer' : 'إجابتك',
-    aiExplainBtn: currentLanguage === 'en' ? 'AI Explanation' : 'توضيح بالذكاء الاصطناعي',
-    aiExplainTitle: currentLanguage === 'en' ? 'AI Tutor Explanation' : 'شرح المعلم الذكاء الاصطناعي',
     archiveHeader: currentLanguage === 'en' ? 'Exam Archive' : 'أرشيف الاختبارات',
     noSubmission: currentLanguage === 'en' ? 'No submissions yet' : 'لا توجد إجابات مقدمة',
   };
 
-  const getAIExplanation = (qId: string) => {
-    const explanations: Record<string, string> = {
-      'q-1': currentLanguage === 'en' 
-        ? "Kekulé proposed that Benzene consists of six carbon atoms in a planar ring with alternating single and double bonds."
-        : "اقترح كيكولي أن البنزين يتكون من حلقة سداسية مستوية من ذرات الكربون.",
-      'q-2': currentLanguage === 'en'
-        ? "For parallel resistors: 1/Req = 1/R1 + 1/R2 + 1/R3. Therefore Req = 18/11 ≈ 1.64 Ohms."
-        : "بالتوازي: 1/R = 1/3 + 1/6 + 1/9 = 11/18. المقاومة المكافئة ≈ 1.64 أوم."
-    };
-    return explanations[qId] || "AI explanation for this question.";
-  };
 
   return (
     <div className="space-y-8">
@@ -205,15 +192,7 @@ export default function ExamResults({ submission, onNavigate }: ExamResultsProps
                         </div>
                       )}
 
-                      {isMCQ && !isCorrect && (
-                        <button
-                          onClick={() => setSelectedExplainQId(q.id)}
-                          className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                          <span>{t.aiExplainBtn}</span>
-                        </button>
-                      )}
+
                     </div>
                   );
                 })}
@@ -261,38 +240,7 @@ export default function ExamResults({ submission, onNavigate }: ExamResultsProps
         </div>
       )}
 
-      {/* AI Explanation Modal */}
-      {selectedExplainQId && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-label={t.aiExplainTitle}>
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <span className="bg-indigo-100 p-1.5 rounded-lg text-indigo-600">
-                  <Award className="h-4 w-4" />
-                </span>
-                {t.aiExplainTitle}
-              </h3>
-              <button 
-                onClick={() => setSelectedExplainQId(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="bg-slate-900 text-slate-300 rounded-xl p-4 text-sm">
-              <MathRenderer text={getAIExplanation(selectedExplainQId)} />
-            </div>
-
-            <button
-              onClick={() => setSelectedExplainQId(null)}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm"
-            >
-              {currentLanguage === 'en' ? 'Close' : 'إغلاق'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

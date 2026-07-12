@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
 import { 
   LineChart, 
-  CreditCard, 
   ReceiptText, 
   TicketPercent, 
   PackageSearch 
@@ -10,7 +9,6 @@ import {
 
 // Import sub-pages
 import FinanceStats from './FinanceStats';
-import PaymentGateways from './PaymentGateways';
 import FinancialRecord from './FinancialRecord';
 import CouponsManager from './CouponsManager';
 import PricingPlans from './PricingPlans';
@@ -19,13 +17,12 @@ export default function FinanceDashboard() {
   const { currentLanguage } = useAppState();
   
   // Local state for inner tab routing
-  const [activeTab, setActiveTab] = useState<'stats' | 'gateways' | 'record' | 'coupons' | 'plans'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'record' | 'coupons' | 'plans'>('stats');
 
   const dict = {
     en: {
       tabs: {
         stats: "Financial Statistics",
-        gateways: "Payment Gateways",
         record: "Financial Record",
         coupons: "Coupons",
         plans: "Pricing Plans"
@@ -34,7 +31,6 @@ export default function FinanceDashboard() {
     ar: {
       tabs: {
         stats: "الإحصائيات المالية",
-        gateways: "بوابات الدفع",
         record: "السجل المالي",
         coupons: "الكوبونات",
         plans: "خطط الأسعار"
@@ -46,7 +42,6 @@ export default function FinanceDashboard() {
 
   const tabs = [
     { id: 'stats', label: t.stats, icon: LineChart },
-    { id: 'gateways', label: t.gateways, icon: CreditCard },
     { id: 'record', label: t.record, icon: ReceiptText },
     { id: 'coupons', label: t.coupons, icon: TicketPercent },
     { id: 'plans', label: t.plans, icon: PackageSearch },
@@ -79,7 +74,6 @@ export default function FinanceDashboard() {
       {/* Tab Content Renderer */}
       <div className="mt-6">
         {activeTab === 'stats' && <FinanceStats />}
-        {activeTab === 'gateways' && <PaymentGateways />}
         {activeTab === 'record' && <FinancialRecord />}
         {activeTab === 'coupons' && <CouponsManager />}
         {activeTab === 'plans' && <PricingPlans />}

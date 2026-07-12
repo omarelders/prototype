@@ -11,14 +11,20 @@ import {
   Coupon, 
   Announcement, 
   SupportTicket,
-  WalletTransaction
+  WalletTransaction,
+  TeacherAccount,
+  Affiliate,
+  Referral,
+  CommissionTier,
+  AffiliatePayout,
+  PlatformTransaction
 } from '../types';
 
 interface AppStateContextProps {
   currentLanguage: 'en' | 'ar';
   setLanguage: (lang: 'en' | 'ar') => void;
-  currentRole: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing';
-  setRole: (role: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing') => void;
+  currentRole: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing' | 'admin' | 'affiliate';
+  setRole: (role: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing' | 'admin' | 'affiliate') => void;
   
   // Custom teacher levels
   activeLevels: string[];
@@ -53,6 +59,14 @@ interface AppStateContextProps {
   tickets: SupportTicket[];
   events: CalendarEvent[];
 
+  // Platform & Affiliate Entities
+  globalTeachers: TeacherAccount[];
+  affiliates: Affiliate[];
+  referrals: Referral[];
+  commissionTiers: CommissionTier[];
+  affiliatePayouts: AffiliatePayout[];
+  platformTransactions: PlatformTransaction[];
+
   // Wallet
   walletBalance: number;
   walletTransactions: WalletTransaction[];
@@ -84,6 +98,19 @@ interface AppStateContextProps {
   addTicketMessage: (ticketId: string, message: { sender: 'teacher' | 'support'; text: string; time: string }) => void;
   addTicket: (ticket: SupportTicket) => void;
   addEvent: (event: CalendarEvent) => void;
+
+  // Platform Mutators
+  addGlobalTeacher: (teacher: TeacherAccount) => void;
+  updateGlobalTeacher: (teacher: TeacherAccount) => void;
+  addAffiliate: (affiliate: Affiliate) => void;
+  updateAffiliate: (affiliate: Affiliate) => void;
+  addReferral: (referral: Referral) => void;
+  updateReferral: (referral: Referral) => void;
+  addCommissionTier: (tier: CommissionTier) => void;
+  updateCommissionTier: (tier: CommissionTier) => void;
+  addAffiliatePayout: (payout: AffiliatePayout) => void;
+  updateAffiliatePayout: (payout: AffiliatePayout) => void;
+  addPlatformTransaction: (transaction: PlatformTransaction) => void;
 
   // Wallet Mutators
   depositToWallet: (amount: number, method: string) => void;
@@ -443,13 +470,111 @@ const defaultSubmissions: ExamSubmission[] = [
       'q-2': '0', // Correct
       'q-3': "Newton's Second Law says that the net force equals the rate of change of momentum, $F = dp/dt$. This is more general because if mass changes, like in a rocket, we can't just do $F=ma$, we must use the derivative of momentum." // Excellent essay answer
     },
-    score: 10,
+    mcqAnswers: { 'q-1': 0, 'q-2': 0 },
+    score: 12,
     status: 'graded',
+    submittedAt: '2026-06-30T10:45:00Z',
     gradedDate: '2026-06-30T11:00:00Z',
     aiFeedback: {
       'q-3': 'Excellent! Correct formulation of $F=dp/dt$ and perfect reasoning about variable mass systems (like rocket propulsion).'
     },
     manualFeedback: 'Perfect job Ahmed, keep up the amazing work!'
+  },
+  {
+    id: 'sub-2',
+    examId: 'e-1',
+    studentId: 'st-2',
+    studentName: 'Mona Aly',
+    answers: { 'q-1': '2', 'q-2': '0', 'q-3': "Newton's law relates force and momentum. F=ma is only for constant mass." },
+    mcqAnswers: { 'q-1': 2, 'q-2': 0 },
+    score: 7,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:50:00Z',
+    gradedDate: '2026-06-30T11:30:00Z'
+  },
+  {
+    id: 'sub-3',
+    examId: 'e-1',
+    studentId: 'st-8',
+    studentName: 'Kareem Fahmy',
+    answers: { 'q-1': '0', 'q-2': '1', 'q-3': "F = dp/dt is the rate of change of momentum." },
+    mcqAnswers: { 'q-1': 0, 'q-2': 1 },
+    score: 8.5,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:55:00Z',
+    gradedDate: '2026-06-30T11:35:00Z'
+  },
+  {
+    id: 'sub-4',
+    examId: 'e-1',
+    studentId: 'st-9',
+    studentName: 'Hoda Mourad',
+    answers: { 'q-1': '3', 'q-2': '2', 'q-3': "I don't know the exact formula, but it has to do with forces." },
+    mcqAnswers: { 'q-1': 3, 'q-2': 2 },
+    score: 5,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:40:00Z',
+    gradedDate: '2026-06-30T11:40:00Z'
+  },
+  {
+    id: 'sub-5',
+    examId: 'e-1',
+    studentId: 'st-10',
+    studentName: 'Tarek Soliman',
+    answers: { 'q-1': '0', 'q-2': '0', 'q-3': "Newton stated that the external force is proportional to the rate of change of momentum, $F=dp/dt$." },
+    mcqAnswers: { 'q-1': 0, 'q-2': 0 },
+    score: 11,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:48:00Z',
+    gradedDate: '2026-06-30T11:45:00Z'
+  },
+  {
+    id: 'sub-6',
+    examId: 'e-1',
+    studentId: 'st-11',
+    studentName: 'Zeinab Omar',
+    answers: { 'q-1': '0', 'q-2': '3', 'q-3': "It states that $F=dp/dt$. It applies to systems with changing mass." },
+    mcqAnswers: { 'q-1': 0, 'q-2': 3 },
+    score: 6.5,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:52:00Z',
+    gradedDate: '2026-06-30T11:50:00Z'
+  },
+  {
+    id: 'sub-7',
+    examId: 'e-1',
+    studentId: 'st-12',
+    studentName: 'Farida Adel',
+    answers: { 'q-1': '1', 'q-2': '1', 'q-3': "Force equals mass times acceleration." },
+    mcqAnswers: { 'q-1': 1, 'q-2': 1 },
+    score: 4,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:42:00Z',
+    gradedDate: '2026-06-30T11:55:00Z'
+  },
+  {
+    id: 'sub-8',
+    examId: 'e-1',
+    studentId: 'st-14',
+    studentName: 'Hana Elwy',
+    answers: { 'q-1': '0', 'q-2': '0', 'q-3': "Force is the derivative of momentum with respect to time: $F=dp/dt$." },
+    mcqAnswers: { 'q-1': 0, 'q-2': 0 },
+    score: 10,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:47:00Z',
+    gradedDate: '2026-06-30T12:00:00Z'
+  },
+  {
+    id: 'sub-9',
+    examId: 'e-1',
+    studentId: 'st-13',
+    studentName: 'Mostafa Kamel',
+    answers: { 'q-1': '2', 'q-2': '0', 'q-3': "Newton's second law is more general as $F=dp/dt$." },
+    mcqAnswers: { 'q-1': 2, 'q-2': 0 },
+    score: 7.5,
+    status: 'graded',
+    submittedAt: '2026-06-30T10:58:00Z',
+    gradedDate: '2026-06-30T12:05:00Z'
   }
 ];
 
@@ -495,14 +620,35 @@ const defaultWalletTransactions: WalletTransaction[] = [
   { id: 'wt-3', type: 'activation', amount: 150, date: '2026-06-29', studentName: 'Mona Aly' },
 ];
 
+const defaultGlobalTeachers: TeacherAccount[] = [
+  { id: 't-1', name: 'Dr. Mohamed Shaker', email: 'dr.shaker.science@gmail.com', specialty: 'Physics & Chemistry', subscriptionTier: 'pro', status: 'active', studentCount: 120, revenueGenerated: 18000, joinDate: '2025-01-15' },
+  { id: 't-2', name: 'Eng. Ahmed Tarek', email: 'ahmed.math@gmail.com', specialty: 'Mathematics', subscriptionTier: 'basic', status: 'active', studentCount: 45, revenueGenerated: 4500, joinDate: '2025-06-20' },
+  { id: 't-3', name: 'Mr. Sayed Ali', email: 'sayed.arabic@yahoo.com', specialty: 'Arabic', subscriptionTier: 'enterprise', status: 'active', studentCount: 350, revenueGenerated: 52500, joinDate: '2024-09-01' },
+];
+
+const defaultAffiliates: Affiliate[] = [
+  { id: 'af-1', name: 'Kareem Mostafa', email: 'kareem.m@influencer.com', type: 'influencer', referralCode: 'KAREEM26', status: 'active', tierId: 'ct-1', joinDate: '2026-01-10' },
+];
+
+const defaultReferrals: Referral[] = [];
+
+const defaultCommissionTiers: CommissionTier[] = [
+  { id: 'ct-1', name: 'Bronze', minReferrals: 0, maxReferrals: 5, commissionPercent: 10, durationMonths: 3 },
+  { id: 'ct-2', name: 'Silver', minReferrals: 6, maxReferrals: 20, commissionPercent: 15, durationMonths: 6 },
+  { id: 'ct-3', name: 'Gold', minReferrals: 21, maxReferrals: null, commissionPercent: 20, durationMonths: 12 },
+];
+
+const defaultAffiliatePayouts: AffiliatePayout[] = [];
+const defaultPlatformTransactions: PlatformTransaction[] = [];
+
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Global View Settings
   const [currentLanguage, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('ab_lang') as 'en' | 'ar') || 'en';
   });
-  const [currentRole, setRole] = useState<'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing'>(() => {
+  const [currentRole, setRole] = useState<'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing' | 'admin' | 'affiliate'>(() => {
     const saved = localStorage.getItem('ab_role');
-    if (saved === 'onboarding' || saved === 'teacher' || saved === 'student' || saved === 'student-landing') return saved;
+    if (saved === 'onboarding' || saved === 'teacher' || saved === 'student' || saved === 'student-landing' || saved === 'admin' || saved === 'affiliate') return saved;
     return 'visitor';
   });
 
@@ -567,6 +713,14 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [events, setEvents] = useState<CalendarEvent[]>(() => loadState('ab_events', defaultEvents));
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>(() => loadState('ab_wallet_transactions', defaultWalletTransactions));
 
+  // Platform & Affiliate State
+  const [globalTeachers, setGlobalTeachers] = useState<TeacherAccount[]>(() => loadState('ab_global_teachers', defaultGlobalTeachers));
+  const [affiliates, setAffiliates] = useState<Affiliate[]>(() => loadState('ab_affiliates', defaultAffiliates));
+  const [referrals, setReferrals] = useState<Referral[]>(() => loadState('ab_referrals', defaultReferrals));
+  const [commissionTiers, setCommissionTiers] = useState<CommissionTier[]>(() => loadState('ab_commission_tiers', defaultCommissionTiers));
+  const [affiliatePayouts, setAffiliatePayouts] = useState<AffiliatePayout[]>(() => loadState('ab_affiliate_payouts', defaultAffiliatePayouts));
+  const [platformTransactions, setPlatformTransactions] = useState<PlatformTransaction[]>(() => loadState('ab_platform_transactions', defaultPlatformTransactions));
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem('ab_lang', currentLanguage);
@@ -587,10 +741,17 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('ab_wallet_balance', walletBalance.toString());
     localStorage.setItem('ab_wallet_transactions', JSON.stringify(walletTransactions));
     localStorage.setItem('ab_active_levels', JSON.stringify(activeLevels));
+    localStorage.setItem('ab_global_teachers', JSON.stringify(globalTeachers));
+    localStorage.setItem('ab_affiliates', JSON.stringify(affiliates));
+    localStorage.setItem('ab_referrals', JSON.stringify(referrals));
+    localStorage.setItem('ab_commission_tiers', JSON.stringify(commissionTiers));
+    localStorage.setItem('ab_affiliate_payouts', JSON.stringify(affiliatePayouts));
+    localStorage.setItem('ab_platform_transactions', JSON.stringify(platformTransactions));
   }, [
     currentLanguage, currentRole, onboardingStep, teacherProfile,
     folders, questions, lessons, classes, exams, students,
-    submissions, coupons, announcements, tickets, events, walletBalance, walletTransactions, activeLevels
+    submissions, coupons, announcements, tickets, events, walletBalance, walletTransactions, activeLevels,
+    globalTeachers, affiliates, referrals, commissionTiers, affiliatePayouts, platformTransactions
   ]);
 
   const updateTeacherProfile = (profile: Partial<typeof teacherProfile>) => {
@@ -712,6 +873,19 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const addEvent = (event: CalendarEvent) => setEvents(prev => [...prev, event]);
 
+  // Platform Mutators
+  const addGlobalTeacher = (teacher: TeacherAccount) => setGlobalTeachers(prev => [...prev, teacher]);
+  const updateGlobalTeacher = (updated: TeacherAccount) => setGlobalTeachers(prev => prev.map(t => t.id === updated.id ? updated : t));
+  const addAffiliate = (affiliate: Affiliate) => setAffiliates(prev => [...prev, affiliate]);
+  const updateAffiliate = (updated: Affiliate) => setAffiliates(prev => prev.map(a => a.id === updated.id ? updated : a));
+  const addReferral = (referral: Referral) => setReferrals(prev => [...prev, referral]);
+  const updateReferral = (updated: Referral) => setReferrals(prev => prev.map(r => r.id === updated.id ? updated : r));
+  const addCommissionTier = (tier: CommissionTier) => setCommissionTiers(prev => [...prev, tier]);
+  const updateCommissionTier = (updated: CommissionTier) => setCommissionTiers(prev => prev.map(t => t.id === updated.id ? updated : t));
+  const addAffiliatePayout = (payout: AffiliatePayout) => setAffiliatePayouts(prev => [...prev, payout]);
+  const updateAffiliatePayout = (updated: AffiliatePayout) => setAffiliatePayouts(prev => prev.map(p => p.id === updated.id ? updated : p));
+  const addPlatformTransaction = (transaction: PlatformTransaction) => setPlatformTransactions(prev => [...prev, transaction]);
+
   const depositToWallet = (amount: number, method: string) => {
     setWalletBalance(prev => prev + amount);
     setWalletTransactions(prev => [
@@ -760,11 +934,13 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       activeLevels, setActiveLevels,
       folders, questions, lessons, classes, exams, students, submissions, coupons, announcements, tickets, events,
       walletBalance, walletTransactions,
+      globalTeachers, affiliates, referrals, commissionTiers, affiliatePayouts, platformTransactions,
       addFolder, deleteFolder, addQuestion, updateQuestion, deleteQuestion,
       addLesson, updateLesson, deleteLesson, addClass, updateClass, updateLessonGroupLinks,
       addExam, updateExam, deleteExam,
       addStudent, updateStudent, confirmStudentPayment, rejectStudentPayment,
       addSubmission, updateSubmission, addCoupon, deleteCoupon, addAnnouncement, addTicketMessage, addTicket, addEvent,
+      addGlobalTeacher, updateGlobalTeacher, addAffiliate, updateAffiliate, addReferral, updateReferral, addCommissionTier, updateCommissionTier, addAffiliatePayout, updateAffiliatePayout, addPlatformTransaction,
       depositToWallet, activateStudentWithWallet
     }}>
       <div dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'} className={currentLanguage === 'ar' ? 'font-arabic' : 'font-sans'}>

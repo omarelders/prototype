@@ -8,6 +8,9 @@ export interface Question {
   modelAnswer?: string; // for Essay
   folderId: string;
   grade?: string; // e.g. Grade 1, Grade 2, Grade 3
+  points?: number; // Point value for weighted scoring
+  required?: boolean; // Whether the question must be answered
+  order?: number; // Position index within an exam
 }
 
 export interface QuestionFolder {
@@ -51,6 +54,7 @@ export interface ClassGroup {
 export interface Exam {
   id: string;
   title: string;
+  description?: string; // Form description
   questionIds: string[];
   duration: number; // minutes
   attempts: number;
@@ -58,6 +62,9 @@ export interface Exam {
   targetGrade?: string; // e.g. Grade 1, Grade 2, Grade 3
   activationDate: string;
   status: 'active' | 'scheduled' | 'completed';
+  shuffleQuestions?: boolean; // Randomize question order
+  showResults?: 'immediately' | 'after_grading' | 'never'; // When to show results
+  passingScore?: number; // Optional passing percentage threshold
 }
 
 export interface Student {
@@ -80,8 +87,10 @@ export interface ExamSubmission {
   studentId: string;
   studentName: string;
   answers: Record<string, string>; // questionId -> studentAnswer
+  mcqAnswers?: Record<string, number>; // Separate MCQ answers as numeric indices
   score?: number;
   status: 'submitted' | 'graded';
+  submittedAt?: string; // Timestamp of submission
   gradedDate?: string;
   aiFeedback?: Record<string, string>; // questionId -> feedback explanation
   manualFeedback?: string;
@@ -130,3 +139,68 @@ export interface WalletTransaction {
   paymentMethod?: string;
 }
 
+// --- Platform & Affiliate Types ---
+
+export interface TeacherAccount {
+  id: string;
+  name: string;
+  email: string;
+  specialty: string;
+  subscriptionTier: 'basic' | 'pro' | 'enterprise';
+  status: 'active' | 'suspended' | 'pending';
+  studentCount: number;
+  revenueGenerated: number;
+  joinDate: string;
+}
+
+export interface Affiliate {
+  id: string;
+  name: string;
+  email: string;
+  type: 'teacher' | 'influencer' | 'student';
+  referralCode: string;
+  status: 'active' | 'pending' | 'suspended';
+  tierId: string;
+  joinDate: string;
+  commissionRate?: number;
+}
+
+export interface Referral {
+  id: string;
+  affiliateId: string;
+  referredTeacherId: string;
+  referredUserId?: string;
+  signupDate: string;
+  date?: string;
+  status: 'pending' | 'converted' | 'expired' | 'paid';
+  conversionDate?: string;
+  commissionEarned: number;
+}
+
+export interface CommissionTier {
+  id: string;
+  name: string; // e.g. Bronze, Silver, Gold
+  minReferrals: number;
+  maxReferrals: number | null;
+  commissionPercent: number;
+  durationMonths: number; // e.g., 3 months
+}
+
+export interface AffiliatePayout {
+  id: string;
+  affiliateId: string;
+  amount: number;
+  period: string; // e.g., "2026-07"
+  status: 'pending' | 'processing' | 'paid';
+  method: string;
+  processedDate?: string;
+}
+
+export interface PlatformTransaction {
+  id: string;
+  teacherId: string;
+  amount: number;
+  date: string;
+  type: 'subscription' | 'commission_payout' | 'refund';
+  status: 'completed' | 'pending' | 'failed';
+}

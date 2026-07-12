@@ -3,6 +3,15 @@ import { useAppState, AppStateProvider } from './shared/context/AppState';
 import { Lesson, Exam, ExamSubmission } from './shared/types';
 import { Settings as DevIcon, RefreshCw, Layers, X } from 'lucide-react';
 
+// Level 0 imports
+import AdminDashboardLayout from './apps/admin-dashboard/AdminDashboardLayout';
+import AdminHome from './apps/admin-dashboard/dashboard/AdminHome';
+import TeachersManager from './apps/admin-dashboard/teachers/TeachersManager';
+import GlobalStudentsManager from './apps/admin-dashboard/students/GlobalStudentsManager';
+import AffiliatesDashboard from './apps/admin-dashboard/affiliates/AffiliatesDashboard';
+import AffiliatesManager from './apps/admin-dashboard/affiliates/AffiliatesManager';
+import PayoutsManager from './apps/admin-dashboard/affiliates/PayoutsManager';
+
 // Level 1 imports
 import LandingPage from './apps/public-site/landing/LandingPage';
 import OnboardingWizard from './apps/public-site/onboarding/OnboardingWizard';
@@ -28,11 +37,22 @@ import LessonViewer from './apps/teacher-dashboard/student-portal/lesson/LessonV
 import ExamTaker from './apps/teacher-dashboard/student-portal/exam/ExamTaker';
 import ExamResults from './apps/teacher-dashboard/student-portal/results/ExamResults';
 
+// Affiliate imports
+import AffiliatePortalLayout from './apps/affiliate-portal/AffiliatePortalLayout';
+import AffiliateDashboard from './apps/affiliate-portal/AffiliateDashboard';
+import ReferralLinks from './apps/affiliate-portal/ReferralLinks';
+import EarningsPayouts from './apps/affiliate-portal/EarningsPayouts';
+import MarketingAssets from './apps/affiliate-portal/MarketingAssets';
+
 function AppContent() {
   const { currentRole, setRole, currentLanguage, setLanguage } = useAppState();
 
   // Teacher navigation state
   const [teacherTab, setTeacherTab] = useState('dashboard');
+
+  // Admin & Affiliate navigation state
+  const [adminTab, setAdminTab] = useState('dashboard');
+  const [affiliateTab, setAffiliateTab] = useState('dashboard');
 
   // Student portal navigation & viewing sub-states
   const [studentTab, setStudentTab] = useState('dashboard');
@@ -57,6 +77,18 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col relative">
       
+      {/* 0. Level 0: Admin Platform */}
+      {currentRole === 'admin' && (
+        <AdminDashboardLayout activeTab={adminTab} setActiveTab={setAdminTab}>
+          {adminTab === 'dashboard' && <AdminHome onNavigate={setAdminTab} />}
+          {adminTab === 'teachers' && <TeachersManager />}
+          {adminTab === 'students' && <GlobalStudentsManager />}
+          {adminTab === 'affiliates' && <AffiliatesDashboard />}
+          {adminTab === 'affiliates-list' && <AffiliatesManager />}
+          {adminTab === 'affiliates-payouts' && <PayoutsManager />}
+        </AdminDashboardLayout>
+      )}
+
       {/* 1. Level 1: Public Marketing & Auth */}
       {currentRole === 'visitor' && <LandingPage />}
       
@@ -129,6 +161,16 @@ function AppContent() {
         </StudentPortalLayout>
       )}
 
+      {/* 4. Affiliate Portal */}
+      {currentRole === 'affiliate' && (
+        <AffiliatePortalLayout activeTab={affiliateTab} setActiveTab={setAffiliateTab}>
+          {affiliateTab === 'dashboard' && <AffiliateDashboard />}
+          {affiliateTab === 'links' && <ReferralLinks />}
+          {affiliateTab === 'earnings' && <EarningsPayouts />}
+          {affiliateTab === 'marketing' && <MarketingAssets />}
+        </AffiliatePortalLayout>
+      )}
+
       {/* Floating Developer/Auditor control center (Prototype Switcher) */}
       <div className="fixed bottom-4 left-4 z-50">
         {showDevPanel ? (
@@ -189,6 +231,22 @@ function AppContent() {
                   }`}
                 >
                   Student Landing
+                </button>
+                <button 
+                  onClick={() => setRole('admin')}
+                  className={`col-span-2 px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'admin' ? 'bg-rose-600 border-rose-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Admin Platform
+                </button>
+                <button 
+                  onClick={() => setRole('affiliate')}
+                  className={`col-span-2 px-2 py-1.5 rounded-lg border font-bold text-center transition-colors ${
+                    currentRole === 'affiliate' ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  Affiliate Portal
                 </button>
               </div>
             </div>

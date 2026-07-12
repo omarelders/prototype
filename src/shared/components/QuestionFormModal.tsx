@@ -68,7 +68,7 @@ export default function QuestionFormModal({
       optionPlaceholder: "Option",
       addOptionBtn: "Add Another Option",
       modelLabel: "Grading Rubric / Reference",
-      modelPlaceholder: "Provide reference solutions, keywords, and main points required for the AI to auto-grade...",
+      modelPlaceholder: "Provide reference solutions, keywords, and main points required to grade...",
       saveUpdateBtn: "Save Updates to Question",
       createBtn: "Create & Add Question",
       studentView: "Student View",

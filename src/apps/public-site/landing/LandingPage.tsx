@@ -23,7 +23,7 @@ export default function LandingPage() {
       brand: "AmalBila",
       tagline: "Educational Platform for Egyptian Teachers",
       heroTitle: "Build Your Independent Digital Academy",
-      heroSubtitle: "AmalBila provides Egyptian high school teachers with the tools to construct interactive lessons, run AI-assisted exams, securely host videos, and manage manual payments (Vodafone Cash & Instapay) easily.",
+      heroSubtitle: "AmalBila provides Egyptian high school teachers with the tools to construct interactive lessons, run exams securely, host videos safely, and manage manual payments (Vodafone Cash & Instapay) easily.",
       ctaGetStarted: "Create Your Platform",
       ctaLogin: "Teacher Login",
       features: "Features",
@@ -33,8 +33,8 @@ export default function LandingPage() {
       featuresTitle: "Everything you need to run your teaching business",
       feature1: "Drag & Drop Lesson Builder",
       feature1Desc: "Easily build modules containing videos, reading content, and inline practice sets.",
-      feature2: "AI Question Generator",
-      feature2Desc: "Create MCQ or essay questions instantly based on your topics and syllabus.",
+      feature2: "Question Bank Manager",
+      feature2Desc: "Organize MCQ or essay questions into structured folders based on your topics and syllabus.",
       feature3: "Detailed Exam Analytics",
       feature3Desc: "Gain insights into student performance with automatic statistics and score breakdowns.",
       feature4: "Manual Payments Ledger",
@@ -118,10 +118,10 @@ export default function LandingPage() {
         : "نعم تماماً، يتم تشغيل الفيديوهات عبر مشغل Bunny Stream الآمن الذي يمنع تنزيل الفيديوهات أو نسخ الروابط المشفرة، مع تقييد النطاق ليعمل فقط داخل حساب طالبك."
     },
     {
-      q: currentLanguage === 'en' ? "Can I generate exams automatically?" : "هل يمكنني إنشاء الامتحانات بشكل تلقائي؟",
+      q: currentLanguage === 'en' ? "Can I manage my own question bank?" : "هل يمكنني إدارة بنك الأسئلة الخاص بي؟",
       a: currentLanguage === 'en'
-        ? "Absolutely. Our built-in AI generator allows you to type a topic and specify the number of questions, then instantly generates calibrated MCQs and Essay prompts with model answers."
-        : "بالتأكيد، يمكنك كتابة موضوع الدرس أو الوحدة، وتحديد عدد الأسئلة ومستوى الصعوبة، وسيقوم الذكاء الاصطناعي بإنشاء الأسئلة مع الإجابات النموذجية وحفظها في بنك الأسئلة الخاص بك."
+        ? "Absolutely. Our platform provides a powerful Question Bank where you can organize, categorize, and store your custom questions for easy exam assembly."
+        : "بالتأكيد، توفر المنصة بنك أسئلة متكامل لتنظيم أسئلتك في مجلدات حسب الوحدات، مما يسهل عليك بناء الاختبارات."
     }
   ];
 
@@ -354,10 +354,7 @@ export default function LandingPage() {
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                     <span>{currentLanguage === 'en' ? '50 GB Video Bandwidth' : '50 جيجابايت سعة رفع الفيديوهات'}</span>
                   </li>
-                  <li className="flex items-center gap-3">
-                    <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>{currentLanguage === 'en' ? '100 AI Generation Credits' : '100 رصيد لتوليد الأسئلة بالذكاء الاصطناعي'}</span>
-                  </li>
+
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                     <span>{currentLanguage === 'en' ? 'Standard student portal' : 'بوابة الطالب الأساسية'}</span>
@@ -393,10 +390,7 @@ export default function LandingPage() {
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
                     <span>{currentLanguage === 'en' ? '250 GB Video Bandwidth' : '250 جيجابايت سعة رفع الفيديوهات'}</span>
                   </li>
-                  <li className="flex items-center gap-3">
-                    <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                    <span className="font-semibold text-slate-800">{currentLanguage === 'en' ? '500 AI Generation Credits' : '500 رصيد للذكاء الاصطناعي'}</span>
-                  </li>
+
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-indigo-600 flex-shrink-0" />
                     <span>{currentLanguage === 'en' ? 'Detailed student performance stats' : 'إحصائيات أداء تفصيلية للطلاب'}</span>
@@ -432,10 +426,6 @@ export default function LandingPage() {
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                     <span>{currentLanguage === 'en' ? 'Unlimited Video Bandwidth' : 'سعة رفع فيديوهات غير محدودة'}</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <span>{currentLanguage === 'en' ? 'Unlimited AI Generation Credits' : 'رصيد غير محدود للذكاء الاصطناعي'}</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
@@ -488,8 +478,8 @@ export default function LandingPage() {
             <span className="absolute top-6 right-8 text-6xl font-serif text-indigo-400/30 leading-none">“</span>
             <p className="text-indigo-50 italic text-sm leading-relaxed mb-6 relative z-10">
               {currentLanguage === 'en' 
-                ? "The AI Question generator is absolutely mind-blowing. I just input the topic, e.g., Benzene or Alcohols, and it generates custom, calibrated chemistry questions with step-by-step model explanations. My students love the immediate feedback portal."
-                : "برنامج توليد الأسئلة بالذكاء الاصطناعي مذهل، أكتب اسم الدرس مثل الكيمياء العضوية أو الألكانات فيقوم بصياغة أسئلة متنوعة وإجابات تفصيلية. الطلاب يتفاعلون بحماس مع الواجهة والنتائج الفورية."}
+                ? "The Exam Builder is incredibly intuitive. I just organize my questions by topic, e.g., Benzene or Alcohols, and it allows me to build custom, calibrated chemistry exams. My students love the immediate feedback portal."
+                : "برنامج بناء الاختبارات مذهل، أنظم أسئلتي حسب الدرس مثل الكيمياء العضوية وأركب امتحاناتي بدقائق. الطلاب يتفاعلون بحماس مع الواجهة والنتائج الفورية."}
             </p>
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-indigo-400 flex-shrink-0 overflow-hidden">
