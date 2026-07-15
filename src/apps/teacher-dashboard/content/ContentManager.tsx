@@ -74,7 +74,11 @@ export default function ContentManager() {
         name: "Class Name",
         desc: "Description",
         lessonsCount: "Lessons Linked",
-        examsCount: "Exams Linked"
+        examsCount: "Exams Linked",
+        addLesson: "+ Add Lesson",
+        addExam: "+ Add Exam",
+        noLessons: "No lessons added yet.",
+        noExams: "No exams added yet."
       }
     },
     ar: {
@@ -105,7 +109,11 @@ export default function ContentManager() {
         name: "اسم المجموعة الدراسية",
         desc: "الوصف والمنهج الدراسي",
         lessonsCount: "عدد الدروس المربوطة",
-        examsCount: "عدد الامتحانات المربوطة"
+        examsCount: "عدد الامتحانات المربوطة",
+        addLesson: "+ إضافة درس",
+        addExam: "+ إضافة امتحان",
+        noLessons: "لم يتم إضافة دروس بعد.",
+        noExams: "لم يتم إضافة امتحانات بعد."
       }
     }
   };
@@ -134,7 +142,7 @@ export default function ContentManager() {
   // Hybrid linking states
   const [cGrade, setCGrade] = useState<'Grade 1' | 'Grade 2' | 'Grade 3'>('Grade 1');
   const [lessonSubject, setLessonSubject] = useState('Chemistry');
-  const [assignModalConfig, setAssignModalConfig] = useState<{ mode: 'lesson-to-groups' | 'group-to-lessons'; sourceId: string; gradeFilter?: string; isOptionalStep?: boolean } | null>(null);
+  const [assignModalConfig, setAssignModalConfig] = useState<{ mode: 'lesson-to-groups' | 'group-to-lessons' | 'exam-to-groups' | 'group-to-exams'; sourceId: string; gradeFilter?: string; isOptionalStep?: boolean } | null>(null);
   const [preSelectedGroupId, setPreSelectedGroupId] = useState<string | null>(null);
   const [isNewLesson, setIsNewLesson] = useState(false);
 
@@ -1046,40 +1054,103 @@ export default function ContentManager() {
       {/* 2. Classes Tab */}
       {activeTab === 'classes' && (
         <div className="space-y-6">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col gap-6">
             {classes.map(cls => (
-              <div key={cls.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 text-left">
-                <div className="bg-indigo-50 text-indigo-600 p-3 rounded-xl w-fit">
-                  <Layers className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-extrabold text-slate-900">{cls.name}</h4>
-                    {cls.grade && (
-                      <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md">
-                        {cls.grade}
-                      </span>
-                    )}
+              <div key={cls.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden text-left flex flex-col">
+                {/* Header */}
+                <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-start">
+                  <div className="flex gap-4">
+                    <div className="bg-indigo-100 text-indigo-600 p-3 rounded-xl w-fit h-fit">
+                      <Layers className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h4 className="font-extrabold text-slate-900 text-lg">{cls.name}</h4>
+                        {cls.grade && (
+                          <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md border border-indigo-100">
+                            {cls.grade}
+                          </span>
+                        )}
+                        {cls.status === 'draft' && (
+                          <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md">Draft</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500 font-medium leading-relaxed">{cls.description}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">{cls.description}</p>
                 </div>
-                <div className="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4 text-xs font-bold">
-                  <button
-                    onClick={() => {
-                      setAssignModalConfig({
-                        mode: 'group-to-lessons',
-                        sourceId: cls.id,
-                        gradeFilter: cls.grade
-                      });
-                    }}
-                    className="text-left cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-all border border-transparent hover:border-slate-100"
-                  >
-                    <span className="text-indigo-600 block">{t.classGroup.lessonsCount}</span>
-                    <span className="text-slate-800 text-sm mt-0.5 block">{cls.lessonIds.length}</span>
-                  </button>
-                  <div className="p-1.5">
-                    <span className="text-slate-400 block">{t.classGroup.examsCount}</span>
-                    <span className="text-slate-800 text-sm mt-0.5 block">{cls.examIds.length}</span>
+
+                {/* Content Body */}
+                <div className="p-6 grid md:grid-cols-2 gap-8">
+                  {/* Lessons List */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-indigo-500" />
+                        {t.lessons} ({cls.lessonIds.length})
+                      </h5>
+                      <button
+                        onClick={() => {
+                          setPreSelectedGroupId(cls.id);
+                          setShowCreateLessonModal(true);
+                        }}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        {t.classGroup.addLesson}
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {cls.lessonIds.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic px-2">{t.classGroup.noLessons}</p>
+                      ) : (
+                        cls.lessonIds.map(lessonId => {
+                          const lesson = lessons.find(l => l.id === lessonId);
+                          if (!lesson) return null;
+                          return (
+                            <div key={lessonId} className="flex justify-between items-center bg-slate-50 border border-slate-100 p-3 rounded-xl hover:border-indigo-200 transition-colors">
+                              <span className="text-xs font-bold text-slate-700 truncate">{lesson.title}</span>
+                              <button onClick={() => handleOpenBuilder(lesson)} className="text-indigo-600 hover:text-indigo-700 p-1 cursor-pointer">
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Exams List */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-amber-500" />
+                        Exams ({cls.examIds.length})
+                      </h5>
+                      <button
+                        onClick={() => {
+                          // Standard assign logic or simplified exam create
+                          setAssignModalConfig({ mode: 'group-to-exams', sourceId: cls.id });
+                        }}
+                        className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer opacity-50"
+                        title="Adding exams requires Exam Builder (Placeholder)"
+                      >
+                        {t.classGroup.addExam}
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {cls.examIds.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic px-2">{t.classGroup.noExams}</p>
+                      ) : (
+                        // Mock rendering for exams, if they exist in state
+                        cls.examIds.map(examId => {
+                          return (
+                            <div key={examId} className="flex justify-between items-center bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                              <span className="text-xs font-bold text-slate-700 truncate">Exam ID: {examId}</span>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1266,7 +1337,9 @@ export default function ContentManager() {
           onAssign={(linkedIds) => {
             updateLessonGroupLinks({
               lessonId: assignModalConfig.mode === 'lesson-to-groups' ? assignModalConfig.sourceId : undefined,
-              groupId: assignModalConfig.mode === 'group-to-lessons' ? assignModalConfig.sourceId : undefined,
+              examId: assignModalConfig.mode === 'exam-to-groups' ? assignModalConfig.sourceId : undefined,
+              groupId: (assignModalConfig.mode === 'group-to-lessons' || assignModalConfig.mode === 'group-to-exams') ? assignModalConfig.sourceId : undefined,
+              type: assignModalConfig.mode.includes('exam') ? 'exam' : 'lesson',
               linkedIds
             });
             setAssignModalConfig(null);

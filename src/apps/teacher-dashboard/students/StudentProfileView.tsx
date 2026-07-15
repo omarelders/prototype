@@ -16,12 +16,17 @@ import {
   CheckCircle2,
   XCircle,
   Minus,
+  PlayCircle,
+  CheckSquare,
+  Eye
 } from 'lucide-react';
 
 interface StudentProfileViewProps {
   student: Student;
   onBack: () => void;
 }
+
+import ExamSubmissionViewer from './ExamSubmissionViewer';
 
 /* ─── Sparkline ─────────────────────────── */
 function Sparkline({ values, color = '#4361ee' }: { values: number[]; color?: string }) {
@@ -89,6 +94,16 @@ function relativeTime(dateStr: string, isAr: boolean): string {
 export default function StudentProfileView({ student, onBack }: StudentProfileViewProps) {
   const { currentLanguage, classes, exams, submissions, questions } = useAppState();
   const isAr = currentLanguage === 'ar';
+  const [viewingSubmissionId, setViewingSubmissionId] = React.useState<string | null>(null);
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'exams'>('overview');
+
+  if (viewingSubmissionId) {
+    const sub = submissions.find(s => s.id === viewingSubmissionId);
+    const exam = exams.find(e => e.id === sub?.examId);
+    if (sub && exam) {
+      return <ExamSubmissionViewer exam={exam} submission={sub} onBack={() => setViewingSubmissionId(null)} />;
+    }
+  }
 
   const t = {
     en: {
@@ -156,6 +171,10 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
       monthly: 'شهري',
       yearly: 'سنوي',
       free: 'مجاني',
+      videoWatched: 'مشاهدة الفيديو',
+      contentRead: 'قراءة المحتوى',
+      homework: 'الواجب',
+      viewExam: 'عرض الإجابات',
     },
   }[currentLanguage];
 
@@ -286,8 +305,30 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
         </div>
       </div>
 
-      {/* ── Section 1: Performance KPI ── */}
-      <section>
+      {/* ── Tabs ── */}
+      <div className="flex border-b border-slate-100 mb-2">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-6 py-3 text-xs font-bold transition-all border-b-2 ${
+            activeTab === 'overview' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {isAr ? 'نظرة عامة' : 'Overview'}
+        </button>
+        <button
+          onClick={() => setActiveTab('exams')}
+          className={`px-6 py-3 text-xs font-bold transition-all border-b-2 ${
+            activeTab === 'exams' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {isAr ? 'الامتحانات' : 'Exams'}
+        </button>
+      </div>
+
+      {activeTab === 'overview' && (
+        <>
+          {/* ── Section 1: Performance KPI ── */}
+          <section>
         <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 mb-4">
           <Target className="h-4 w-4 text-indigo-600" />
           {t.performance}
@@ -399,11 +440,19 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
           </div>
         </section>
       )}
+        </>
+      )}
 
       {/* ── Section 3: Exam History ── */}
-      {mySubmissions.length > 0 && (
-        <section>
-          <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 mb-4">
+      {activeTab === 'exams' && (
+        <div className="animate-fade-in space-y-4">
+          {mySubmissions.length === 0 ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-sm text-slate-400 font-semibold">
+              {t.noExams}
+            </div>
+          ) : (
+            <section>
+              <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 mb-4">
             <Award className="h-4 w-4 text-amber-500" />
             {t.examBreakdown}
           </h3>
@@ -429,6 +478,15 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => setViewingSubmissionId(sub.id)} 
+                        className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm flex items-center justify-center gap-1.5"
+                        aria-label={t.viewExam}
+                        title={t.viewExam}
+                      >
+                         <Eye className="h-4 w-4" />
+                         <span className="text-[10px] font-bold hidden sm:inline">{t.viewExam}</span>
+                      </button>
                       {/* Score badge */}
                       <div className={`rounded-2xl border px-4 py-2 text-center ${scoreBg(pctScore)}`}>
                         <p className="text-[9px] font-bold uppercase tracking-widest opacity-70">{t.score}</p>
@@ -493,11 +551,15 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
               );
             })}
           </div>
-        </section>
+            </section>
+          )}
+        </div>
       )}
 
-      {/* ── Section 4: Engagement / Progress ── */}
-      <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      {activeTab === 'overview' && (
+        <>
+          {/* ── Section 4: Engagement / Progress ── */}
+          <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 mb-5">
           <BarChart3 className="h-4 w-4 text-indigo-600" />
           {t.engagement}
@@ -520,6 +582,46 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
             </div>
           </div>
 
+          {/* Lesson Breakdown */}
+          {studentClass?.lessonIds && studentClass.lessonIds.length > 0 && (
+            <div className="mt-6 space-y-3 pt-4 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-800 mb-3">{t.courseProgress}</h4>
+              {studentClass.lessonIds.map(lessonId => {
+                const lesson = useAppState().lessons.find(l => l.id === lessonId);
+                if (!lesson) return null;
+                const prog = student.lessonProgress?.[lessonId];
+                
+                return (
+                  <div key={lessonId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-700 truncate">{lesson.title}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-[10px] font-semibold text-slate-500">
+                      <div className="flex items-center gap-1.5">
+                        {prog?.videoWatched ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <PlayCircle className="h-4 w-4 text-slate-300" />}
+                        <span className={prog?.videoWatched ? 'text-emerald-700' : ''}>{t.videoWatched || 'Video'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {prog?.contentRead ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <FileText className="h-4 w-4 text-slate-300" />}
+                        <span className={prog?.contentRead ? 'text-emerald-700' : ''}>{t.contentRead || 'Content'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {prog?.homeworkScore !== undefined ? (
+                          <div className="px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold">
+                            {prog.homeworkScore}/10
+                          </div>
+                        ) : (
+                          <CheckSquare className="h-4 w-4 text-slate-300" />
+                        )}
+                        <span className={prog?.homeworkScore !== undefined ? 'text-indigo-700' : ''}>{t.homework || 'Homework'}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
           {/* Subscription type chip */}
           <div className="flex items-center gap-2 pt-1">
             <span className="text-xs font-semibold text-slate-500">{isAr ? 'نوع الاشتراك:' : 'Subscription:'}</span>
@@ -547,6 +649,8 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
           dir={dir}
         />
       </section>
+        </>
+      )}
     </div>
   );
 }

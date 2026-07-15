@@ -29,6 +29,7 @@ import CalendarView from './apps/teacher-dashboard/calendar/CalendarView';
 import FinanceDashboard from './apps/teacher-dashboard/finance/FinanceDashboard';
 import AnalyticsDashboard from './apps/teacher-dashboard/analytics/AnalyticsDashboard';
 import SettingsPanel from './apps/teacher-dashboard/settings/SettingsPanel';
+import GradingManager from './apps/teacher-dashboard/grading/GradingManager';
 
 // Level 3 imports
 import StudentPortalLayout from './apps/teacher-dashboard/student-portal/StudentPortalLayout';
@@ -105,6 +106,7 @@ function AppContent() {
           {teacherTab === 'question-bank' && <QuestionBank />}
           {teacherTab === 'exams' && <ExamsManager />}
           {teacherTab === 'students' && <StudentsManager />}
+          {teacherTab === 'grading' && <GradingManager />}
           {teacherTab === 'activation' && <ActivationManager />}
           {teacherTab === 'calendar' && <CalendarView />}
           {teacherTab === 'finance' && <FinanceDashboard />}

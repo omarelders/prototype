@@ -40,26 +40,18 @@ export default function QuestionBank() {
     addQuestion, 
     updateQuestion, 
     deleteQuestion,
-    activeLevels,
-    setActiveLevels
+    academicLevels,
+    addAcademicLevel,
+    deleteAcademicLevel
   } = useAppState();
-
-  const allAvailableLevels = [
-    { id: 'prep1', en: 'First Preparatory', ar: 'الصف الأول الإعدادي', subEn: 'Grade 7 Curriculum', subAr: 'منهج الصف الأول الإعدادي', labelNum: '١' },
-    { id: 'prep2', en: 'Second Preparatory', ar: 'الصف الثاني الإعدادي', subEn: 'Grade 8 Curriculum', subAr: 'منهج الصف الثاني الإعدادي', labelNum: '٢' },
-    { id: 'prep3', en: 'Third Preparatory', ar: 'الصف الثالث الإعدادي', subEn: 'Grade 9 Curriculum', subAr: 'منهج الصف الثالث الإعدادي', labelNum: '٣' },
-    { id: 'g1', en: 'First Secondary', ar: 'الصف الأول الثانوي', subEn: 'Grade 10 Curriculum', subAr: 'منهج الصف الأول الثانوي', labelNum: '١' },
-    { id: 'g2', en: 'Second Secondary', ar: 'الصف الثاني الثانوي', subEn: 'Grade 11 Curriculum', subAr: 'منهج الصف الثاني الثانوي', labelNum: '٢' },
-    { id: 'g3', en: 'Third Secondary', ar: 'الصف الثالث الثانوي', subEn: 'Grade 12 Curriculum', subAr: 'منهج الصف الثالث الثانوي', labelNum: '٣' },
-  ];
 
   // State filters
   const [selectedLevel, setSelectedLevel] = useState<string>(() => {
-    return activeLevels.length > 0 ? activeLevels[0] : 'g3';
+    return academicLevels.length > 0 ? academicLevels[0].id : 'g3';
   });
   
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(() => {
-    const initialLevel = activeLevels.length > 0 ? activeLevels[0] : 'g3';
+    const initialLevel = academicLevels.length > 0 ? academicLevels[0].id : 'g3';
     const initialFolders = folders.filter(f => (f.level || 'g3') === initialLevel);
     return initialFolders.length > 0 ? initialFolders[0].id : null;
   });
@@ -77,19 +69,14 @@ export default function QuestionBank() {
 
   // Level configuration state
   const [showLevelConfigModal, setShowLevelConfigModal] = useState(false);
-  const [tempActiveLevels, setTempActiveLevels] = useState<string[]>(activeLevels);
-
-  // Sync tempActiveLevels when activeLevels context changes
-  React.useEffect(() => {
-    setTempActiveLevels(activeLevels);
-  }, [activeLevels]);
+  const [newStageName, setNewStageName] = useState('');
 
   // Keep selectedLevel valid
   React.useEffect(() => {
-    if (activeLevels.length > 0 && !activeLevels.includes(selectedLevel)) {
-      setSelectedLevel(activeLevels[0]);
+    if (academicLevels.length > 0 && !academicLevels.find(l => l.id === selectedLevel)) {
+      setSelectedLevel(academicLevels[0].id);
     }
-  }, [activeLevels, selectedLevel]);
+  }, [academicLevels, selectedLevel]);
 
   // Sync selectedFolderId when selectedLevel or folders change
   React.useEffect(() => {
@@ -350,7 +337,7 @@ export default function QuestionBank() {
         </div>
 
         {/* Level Switcher Cards Grid */}
-        {activeLevels.length === 0 ? (
+        {academicLevels.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl relative z-10 mt-8">
             <GraduationCap className="h-10 w-10 text-slate-500 mb-3.5 animate-bounce" />
             <h4 className="text-sm font-bold text-white mb-1.5">
@@ -371,13 +358,13 @@ export default function QuestionBank() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8 relative z-10">
-            {activeLevels.map((levelId) => {
-              const levelInfo = allAvailableLevels.find(l => l.id === levelId) || allAvailableLevels[3];
+            {academicLevels.map((levelInfo) => {
+              const levelId = levelInfo.id;
               const isSelected = selectedLevel === levelId;
               const stats = getLevelStats(levelId);
               
-              const levelTitle = currentLanguage === 'en' ? levelInfo.en : levelInfo.ar;
-              const levelSub = currentLanguage === 'en' ? levelInfo.subEn : levelInfo.subAr;
+              const levelTitle = levelInfo.name;
+              const levelSub = levelInfo.description || '';
 
               return (
                 <button
@@ -407,7 +394,7 @@ export default function QuestionBank() {
                     <div className={`h-8 w-8 rounded-full border border-slate-700/60 flex items-center justify-center font-extrabold text-xs transition-colors ${
                       isSelected ? 'bg-slate-800 text-white border-indigo-500/40' : 'bg-slate-950/60 text-slate-500 group-hover:text-slate-300'
                     }`}>
-                      {levelInfo.labelNum}
+                      {levelInfo.labelNum || '•'}
                     </div>
                   </div>
 
@@ -684,120 +671,76 @@ export default function QuestionBank() {
             </p>
 
             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-              {/* Preparatory School Section */}
-              <div className="space-y-2.5">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">
-                  {currentLanguage === 'en' ? 'Preparatory Stage' : 'المرحلة الإعدادية'}
-                </h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {allAvailableLevels.slice(0, 3).map((level) => {
-                    const isChecked = tempActiveLevels.includes(level.id);
-                    return (
-                      <label 
-                        key={level.id}
-                        className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
-                          isChecked 
-                            ? 'border-indigo-600 bg-indigo-50/20 text-indigo-900 font-bold' 
-                            : 'border-slate-100 hover:border-slate-200 text-slate-700 font-semibold'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setTempActiveLevels([...tempActiveLevels, level.id]);
-                              } else {
-                                setTempActiveLevels(tempActiveLevels.filter(id => id !== level.id));
-                              }
-                            }}
-                            className="h-4.5 w-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span className="text-xs">{currentLanguage === 'en' ? level.en : level.ar}</span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded uppercase">
-                          {currentLanguage === 'en' ? 'Prep' : 'إعدادي'}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Secondary School Section */}
-              <div className="space-y-2.5 pt-2">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">
-                  {currentLanguage === 'en' ? 'Secondary Stage' : 'المرحلة الثانوية'}
-                </h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {allAvailableLevels.slice(3).map((level) => {
-                    const isChecked = tempActiveLevels.includes(level.id);
-                    return (
-                      <label 
-                        key={level.id}
-                        className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
-                          isChecked 
-                            ? 'border-indigo-600 bg-indigo-50/20 text-indigo-900 font-bold' 
-                            : 'border-slate-100 hover:border-slate-200 text-slate-700 font-semibold'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setTempActiveLevels([...tempActiveLevels, level.id]);
-                              } else {
-                                setTempActiveLevels(tempActiveLevels.filter(id => id !== level.id));
-                              }
-                            }}
-                            className="h-4.5 w-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span className="text-xs">{currentLanguage === 'en' ? level.en : level.ar}</span>
-                        </div>
-                        <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase">
-                          {currentLanguage === 'en' ? 'Sec' : 'ثانوي'}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+              <div className="grid grid-cols-1 gap-2">
+                {academicLevels.map((level) => {
+                  return (
+                    <div 
+                      key={level.id}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border-2 border-slate-100 hover:border-slate-200 text-slate-700 font-semibold transition-all`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs">{level.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {level.description && (
+                           <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase">
+                             {level.description}
+                           </span>
+                        )}
+                        <button 
+                          onClick={() => deleteAcademicLevel(level.id)}
+                          className="text-slate-400 hover:text-rose-500 p-1 rounded-md transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {academicLevels.length === 0 && (
+                  <p className="text-xs text-slate-500 text-center py-4">
+                    {currentLanguage === 'en' ? 'No levels added yet.' : 'لم يتم إضافة أي مرحلة دراسية.'}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Warning Alert */}
-            <div className="flex gap-2.5 items-start bg-slate-50 p-4.5 rounded-2xl border border-slate-200/60">
-              <AlertCircle className="h-4.5 w-4.5 text-indigo-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[10px] text-slate-500 leading-normal font-semibold">
-                {currentLanguage === 'en'
-                  ? 'Note: Deselecting a level hides it from your dashboard tabs. Existing folder resources and questions are preserved and not deleted.'
-                  : 'ملاحظة: إلغاء تحديد مرحلة دراسية يخفيها من لوحة التحكم، لكن يتم الحفاظ على المجلدات والأسئلة الحالية ولا يتم حذفها.'}
-              </p>
+            <div className="border-t border-slate-100 pt-4 mt-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newStageName}
+                  onChange={(e) => setNewStageName(e.target.value)}
+                  placeholder={currentLanguage === 'en' ? 'New level name (e.g., Grade 10)' : 'اسم المرحلة الجديدة (مثال: الصف الرابع)'}
+                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newStageName.trim()) {
+                      addAcademicLevel({
+                        id: `lvl-${Date.now()}`,
+                        name: newStageName.trim(),
+                        labelNum: (academicLevels.length + 1).toString()
+                      });
+                      setNewStageName('');
+                    }
+                  }}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+                >
+                  {currentLanguage === 'en' ? 'Add' : 'إضافة'}
+                </button>
+              </div>
             </div>
 
             {/* Action buttons */}
             <div className="flex gap-3.5 pt-2">
               <button
                 type="button"
-                onClick={() => {
-                  setActiveLevels(tempActiveLevels);
-                  setShowLevelConfigModal(false);
-                }}
-                className="flex-1 bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer text-xs uppercase tracking-wider text-center"
+                onClick={() => setShowLevelConfigModal(false)}
+                className="w-full bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer text-xs uppercase tracking-wider text-center"
               >
-                {currentLanguage === 'en' ? 'Save Changes' : 'حفظ الإعدادات'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTempActiveLevels(activeLevels);
-                  setShowLevelConfigModal(false);
-                }}
-                className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold py-3.5 rounded-xl transition-all cursor-pointer text-xs uppercase tracking-wider text-center"
-              >
-                {currentLanguage === 'en' ? 'Cancel' : 'إلغاء'}
+                {currentLanguage === 'en' ? 'Done' : 'تم'}
               </button>
             </div>
           </div>

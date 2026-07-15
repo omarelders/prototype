@@ -472,57 +472,89 @@ export default function AnalyticsDashboard() {
       </section>
 
       {/* ════════════════════════════════════
-          SECTION 2 — Score Distribution
+          SECTION 2 & 6 — Score Distribution & Activity
       ════════════════════════════════════ */}
-      <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-indigo-600" />
-              {t.scoreDist}
-            </h2>
-            <p className="text-[11px] text-slate-400 font-semibold mt-1">{t.scoreDistSub}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm h-full">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-indigo-600" />
+                {t.scoreDist}
+              </h2>
+              <p className="text-[11px] text-slate-400 font-semibold mt-1">{t.scoreDistSub}</p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-end gap-4 h-36">
-          {scoreBuckets.map((bucket, i) => {
-            const barH = maxBucketCount > 0 ? (bucket.count / maxBucketCount) * 100 : 0;
-            return (
-              <div key={i} className="flex flex-col items-center gap-2 flex-1 group">
-                <span className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
-                  {bucket.count} {t.students}
-                </span>
-                <div className="w-full relative flex items-end" style={{ height: '100px' }}>
-                  {/* background track */}
-                  <div className="absolute inset-0 rounded-xl bg-slate-50 border border-slate-100" />
-                  {/* filled bar */}
-                  <div
-                    className="relative w-full rounded-xl transition-all duration-700"
-                    style={{
-                      height: `${Math.max(barH, bucket.count > 0 ? 8 : 0)}%`,
-                      background: `linear-gradient(to top, ${bucket.color}dd, ${bucket.color}88)`,
-                      boxShadow: `0 4px 12px ${bucket.color}44`,
-                    }}
-                  />
-                  {/* count label inside bar */}
-                  {bucket.count > 0 && (
-                    <span
-                      className="absolute inset-x-0 text-center text-[11px] font-black text-white"
-                      style={{ bottom: `${Math.max(barH, 8)}%`, transform: 'translateY(100%)' }}
-                    >
-                      {bucket.count}
-                    </span>
-                  )}
+          <div className="flex items-end gap-4 h-36">
+            {scoreBuckets.map((bucket, i) => {
+              const barH = maxBucketCount > 0 ? (bucket.count / maxBucketCount) * 100 : 0;
+              return (
+                <div key={i} className="flex flex-col items-center gap-2 flex-1 group">
+                  <span className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
+                    {bucket.count} {t.students}
+                  </span>
+                  <div className="w-full relative flex items-end" style={{ height: '100px' }}>
+                    {/* background track */}
+                    <div className="absolute inset-0 rounded-xl bg-slate-50 border border-slate-100" />
+                    {/* filled bar */}
+                    <div
+                      className="relative w-full rounded-xl transition-all duration-700"
+                      style={{
+                        height: `${Math.max(barH, bucket.count > 0 ? 8 : 0)}%`,
+                        background: `linear-gradient(to top, ${bucket.color}dd, ${bucket.color}88)`,
+                        boxShadow: `0 4px 12px ${bucket.color}44`,
+                      }}
+                    />
+                    {/* count label inside bar */}
+                    {bucket.count > 0 && (
+                      <span
+                        className="absolute inset-x-0 text-center text-[11px] font-black text-white"
+                        style={{ bottom: `${Math.max(barH, 8)}%`, transform: 'translateY(100%)' }}
+                      >
+                        {bucket.count}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 text-center leading-tight">
+                    {bucket.label}
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 text-center leading-tight">
-                  {bucket.label}
-                </span>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm h-full">
+          <h2 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-2">
+            <Activity className="h-4 w-4 text-indigo-600" />
+            {t.activityHeatmap}
+          </h2>
+          <p className="text-[11px] text-slate-400 font-semibold mb-5">{t.activitySub}</p>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {activityGrid.map((day, i) => (
+              <div key={i} className="group relative">
+                <div
+                  className="w-4 h-4 rounded-sm transition-transform duration-150 group-hover:scale-150 cursor-default"
+                  style={{ backgroundColor: activityColor(day.count) }}
+                />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded-md font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                  {day.date}: {day.count} {t.submissions.toLowerCase()}
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            <span className="text-[10px] font-semibold text-slate-400">{isAr ? 'أقل' : 'Less'}</span>
+            {['#f1f5f9', '#c7d2fe', '#818cf8', '#4361ee'].map(c => (
+              <div key={c} className="w-3.5 h-3.5 rounded-sm" style={{ backgroundColor: c }} />
+            ))}
+            <span className="text-[10px] font-semibold text-slate-400">{isAr ? 'أكثر' : 'More'}</span>
+          </div>
+        </section>
+      </div>
 
       {/* ════════════════════════════════════
           SECTION 3 — Per-Exam Breakdown
@@ -561,7 +593,8 @@ export default function AnalyticsDashboard() {
               {/* Per-question accuracy bars */}
               <div className="space-y-3">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.questionAccuracy}</p>
-                {perQ.map(q => {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  {perQ.map(q => {
                   const { bg, border, bar, text } = heatColor(q.correctPct);
                   return (
                     <div key={q.qId} className="space-y-1">
@@ -583,6 +616,7 @@ export default function AnalyticsDashboard() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             </div>
           ))}
@@ -617,10 +651,10 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-100">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
+        <div className="overflow-x-auto overflow-y-auto max-h-[350px] rounded-xl border border-slate-100">
+          <table className="w-full text-xs relative">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-slate-50 border-b border-slate-100 shadow-sm">
                 <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-widest text-[10px] w-10">{t.rank}</th>
                 <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-widest text-[10px]">{t.name}</th>
                 <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-widest text-[10px] hidden md:table-cell">{t.class}</th>
@@ -694,14 +728,14 @@ export default function AnalyticsDashboard() {
         </h2>
         <p className="text-[11px] text-slate-400 font-semibold mb-5">{t.questionHeatmapSub}</p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="flex overflow-x-auto gap-4 pb-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {Object.entries(questionStats).map(([qId, stat]) => {
             const q = questions.find(qq => qq.id === qId);
             if (!q) return null;
             const correctPct = stat.total > 0 ? pct(stat.correct, stat.total) : 0;
             const { bg, border, bar, text } = heatColor(correctPct);
             return (
-              <div key={qId} className={`rounded-xl border p-4 space-y-2 ${bg} ${border}`}>
+              <div key={qId} className={`rounded-xl border p-4 space-y-2 min-w-[280px] flex-shrink-0 snap-start ${bg} ${border}`}>
                 <div className="flex items-start justify-between gap-2">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-white/60 ${border} ${text} flex-shrink-0`}>
                     {q.type === 'mcq' ? t.mcq : t.essay}
@@ -724,41 +758,7 @@ export default function AnalyticsDashboard() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════
-          SECTION 6 — Activity Heatmap
-      ════════════════════════════════════ */}
-      <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-2">
-          <Activity className="h-4 w-4 text-indigo-600" />
-          {t.activityHeatmap}
-        </h2>
-        <p className="text-[11px] text-slate-400 font-semibold mb-5">{t.activitySub}</p>
 
-        {/* Day labels */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {activityGrid.map((day, i) => (
-            <div key={i} className="group relative">
-              <div
-                className="w-4 h-4 rounded-sm transition-transform duration-150 group-hover:scale-150 cursor-default"
-                style={{ backgroundColor: activityColor(day.count) }}
-              />
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded-md font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                {day.date}: {day.count} {t.submissions.toLowerCase()}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-2 mt-4">
-          <span className="text-[10px] font-semibold text-slate-400">{isAr ? 'أقل' : 'Less'}</span>
-          {['#f1f5f9', '#c7d2fe', '#818cf8', '#4361ee'].map(c => (
-            <div key={c} className="w-3.5 h-3.5 rounded-sm" style={{ backgroundColor: c }} />
-          ))}
-          <span className="text-[10px] font-semibold text-slate-400">{isAr ? 'أكثر' : 'More'}</span>
-        </div>
-      </section>
 
     </div>
   );

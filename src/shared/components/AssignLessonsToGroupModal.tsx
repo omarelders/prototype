@@ -3,8 +3,8 @@ import { useAppState } from '../context/AppState';
 import { Search, Check, Plus, X } from 'lucide-react';
 
 interface AssignModalProps {
-  mode: 'lesson-to-groups' | 'group-to-lessons';
-  sourceId: string; // lessonId or groupId depending on mode
+  mode: 'lesson-to-groups' | 'group-to-lessons' | 'exam-to-groups' | 'group-to-exams';
+  sourceId: string; // lessonId, examId, or groupId depending on mode
   gradeFilter?: string; // pre-filter candidate list by grade
   onAssign: (ids: string[]) => void | Promise<void>;
   onCreateNew?: () => void; // opens Create Lesson modal pre-scoped to this group, only in group-to-lessons mode
@@ -21,7 +21,7 @@ export default function AssignLessonsToGroupModal({
   onClose,
   isOptionalStep
 }: AssignModalProps) {
-  const { currentLanguage, lessons, classes } = useAppState();
+  const { currentLanguage, lessons, exams, classes } = useAppState();
   const [searchQuery, setSearchQuery] = useState('');
 
   const isRtl = currentLanguage === 'ar';
@@ -30,10 +30,14 @@ export default function AssignLessonsToGroupModal({
     en: {
       titleLessonToGroups: "Assign Lesson to Groups",
       titleGroupToLessons: "Link Lessons to Group",
+      titleExamToGroups: "Assign Exam to Groups",
+      titleGroupToExams: "Link Exams to Group",
       descLessonToGroups: "Select the class groups that should receive this lesson.",
       descGroupToLessons: "Select the lessons to assign to this class group.",
+      descExamToGroups: "Select the class groups that should receive this exam.",
+      descGroupToExams: "Select the exams to assign to this class group.",
       searchPlaceholder: "Search...",
-      createBtn: "+ Create new lesson",
+      createBtn: mode.includes('exam') ? "+ Create new exam" : "+ Create new lesson",
       saveBtn: "Save Assignment",
       cancelBtn: isOptionalStep ? "Skip for now" : "Cancel",
       noCandidates: "No matching items found.",
@@ -42,10 +46,14 @@ export default function AssignLessonsToGroupModal({
     ar: {
       titleLessonToGroups: "ربط الدرس بالمجموعات",
       titleGroupToLessons: "ربط الدروس بالمجموعة",
+      titleExamToGroups: "ربط الامتحان بالمجموعات",
+      titleGroupToExams: "ربط الامتحانات بالمجموعة",
       descLessonToGroups: "اختر المجموعات الدراسية التي تريد ربط هذا الدرس بها.",
       descGroupToLessons: "اختر الدروس التي تريد إضافتها لهذه المجموعة الدراسية.",
+      descExamToGroups: "اختر المجموعات الدراسية التي تريد ربط هذا الامتحان بها.",
+      descGroupToExams: "اختر الامتحانات التي تريد إضافتها لهذه المجموعة الدراسية.",
       searchPlaceholder: "بحث...",
-      createBtn: "+ إنشاء درس جديد",
+      createBtn: mode.includes('exam') ? "+ إنشاء امتحان جديد" : "+ إنشاء درس جديد",
       saveBtn: "حفظ التغييرات",
       cancelBtn: isOptionalStep ? "تخطي في الوقت الحالي" : "إلغاء",
       noCandidates: "لم يتم العثور على عناصر مطابقة.",
@@ -69,34 +77,43 @@ export default function AssignLessonsToGroupModal({
 
   // Initialize selected IDs state
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
-    if (mode === 'lesson-to-groups') {
-      // Find all class groups currently containing this lesson
+    if (mode === 'lesson-to-groups' || mode === 'exam-to-groups') {
+      const isExam = mode === 'exam-to-groups';
+      // Find all class groups currently containing this lesson/exam
       return classes
-        .filter(cls => cls.lessonIds.includes(sourceId))
+        .filter(cls => isExam ? cls.examIds?.includes(sourceId) : cls.lessonIds?.includes(sourceId))
         .map(cls => cls.id);
     } else {
-      // Find the lessons currently linked to this class group
+      const isExam = mode === 'group-to-exams';
+      // Find the lessons/exams currently linked to this class group
       const targetGroup = classes.find(c => c.id === sourceId);
-      return targetGroup ? targetGroup.lessonIds : [];
+      return targetGroup ? (isExam ? (targetGroup.examIds || []) : (targetGroup.lessonIds || [])) : [];
     }
   });
 
   // Candidates list setup
   let candidates: Array<{ id: string; name: string; description?: string; grade?: string }> = [];
 
-  if (mode === 'lesson-to-groups') {
+  if (mode === 'lesson-to-groups' || mode === 'exam-to-groups') {
     candidates = classes.map(cls => ({
       id: cls.id,
       name: cls.name,
       description: cls.description,
       grade: cls.grade ? normalizeGrade(cls.grade) : 'Grade 1' // Default or mapped
     }));
-  } else {
+  } else if (mode === 'group-to-lessons') {
     candidates = lessons.map(les => ({
       id: les.id,
       name: les.title,
       description: les.description,
       grade: les.grade ? normalizeGrade(les.grade) : (classes.find(c => c.id === les.targetClass)?.grade || 'Grade 1')
+    }));
+  } else if (mode === 'group-to-exams') {
+    candidates = exams.map(ex => ({
+      id: ex.id,
+      name: ex.title,
+      description: ex.description || `Duration: ${ex.duration} mins`,
+      grade: ex.targetGrade ? normalizeGrade(ex.targetGrade) : (classes.find(c => c.id === ex.targetClass)?.grade || 'Grade 1')
     }));
   }
 
@@ -141,12 +158,12 @@ export default function AssignLessonsToGroupModal({
           <div>
             <h3 className="text-lg font-extrabold text-slate-900 leading-none">
               {isOptionalStep 
-                ? (mode === 'lesson-to-groups' ? (currentLanguage === 'en' ? 'Assign to group(s) now?' : 'هل ترغب في تخصيص الدرس لمجموعات الآن؟') : (currentLanguage === 'en' ? 'Add lessons to this group' : 'إضافة دروس لهذه المجموعة'))
-                : (mode === 'lesson-to-groups' ? t.titleLessonToGroups : t.titleGroupToLessons)}
+                ? (mode === 'lesson-to-groups' || mode === 'exam-to-groups' ? (currentLanguage === 'en' ? 'Assign to group(s) now?' : 'هل ترغب في تخصيص العنصر لمجموعات الآن؟') : (mode === 'group-to-exams' ? (currentLanguage === 'en' ? 'Add exams to this group' : 'إضافة امتحانات لهذه المجموعة') : (currentLanguage === 'en' ? 'Add lessons to this group' : 'إضافة دروس لهذه المجموعة')))
+                : (mode === 'lesson-to-groups' ? t.titleLessonToGroups : mode === 'group-to-lessons' ? t.titleGroupToLessons : mode === 'exam-to-groups' ? t.titleExamToGroups : t.titleGroupToExams)}
             </h3>
             {!isOptionalStep && (
               <p className="text-xs font-semibold text-slate-400 mt-2">
-                {mode === 'lesson-to-groups' ? t.descLessonToGroups : t.descGroupToLessons}
+                {mode === 'lesson-to-groups' ? t.descLessonToGroups : mode === 'group-to-lessons' ? t.descGroupToLessons : mode === 'exam-to-groups' ? t.descExamToGroups : t.descGroupToExams}
               </p>
             )}
           </div>
@@ -178,7 +195,7 @@ export default function AssignLessonsToGroupModal({
               <p className="font-semibold text-sm">
                 {t.noCandidates}
               </p>
-              {mode === 'group-to-lessons' && onCreateNew && (
+              {(mode === 'group-to-lessons' || mode === 'group-to-exams') && onCreateNew && (
                  <button onClick={onCreateNew} className="text-indigo-600 hover:text-indigo-700 text-xs font-bold mt-2">
                    {t.createBtn}
                  </button>
@@ -232,7 +249,7 @@ export default function AssignLessonsToGroupModal({
           </div>
 
           <div className="flex gap-3">
-            {mode === 'group-to-lessons' && onCreateNew && (
+            {(mode === 'group-to-lessons' || mode === 'group-to-exams') && onCreateNew && (
               <button
                 type="button"
                 onClick={onCreateNew}

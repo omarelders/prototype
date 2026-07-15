@@ -23,7 +23,8 @@ import {
   Wallet,
   ArrowDownLeft,
   ArrowUpRight,
-  Coins
+  Coins,
+  CheckSquare
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -150,7 +151,8 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
         calendar: "Schedule Calendar",
         finance: "Finance & Profits",
         analytics: "Advanced Analytics",
-        settings: "Platform Settings"
+        settings: "Platform Settings",
+        grading: "Grading & Feedback"
       },
       wallet: {
         badge: "Wallet Balance",
@@ -192,7 +194,8 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
         calendar: "جدول المواعيد والأنشطة",
         finance: "المالية والأرباح",
         analytics: "التحليلات ومستوى الطلاب",
-        settings: "إعدادات المنصة"
+        settings: "إعدادات المنصة",
+        grading: "التصحيح"
       },
       wallet: {
         badge: "رصيد المحفظة",
@@ -239,6 +242,7 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
       group: currentLanguage === 'en' ? 'Operations' : 'العمليات',
       items: [
         { id: 'students', label: t.menu.students, icon: Users },
+        { id: 'grading', label: t.menu.grading, icon: CheckSquare },
         { id: 'activation', label: t.menu.activation, icon: Zap },
         { id: 'calendar', label: t.menu.calendar, icon: Calendar },
       ]

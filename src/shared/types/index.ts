@@ -13,6 +13,13 @@ export interface Question {
   order?: number; // Position index within an exam
 }
 
+export interface AcademicLevel {
+  id: string;
+  name: string;
+  description?: string;
+  labelNum?: string; // e.g. "1", "2"
+}
+
 export interface QuestionFolder {
   id: string;
   name: string;
@@ -49,6 +56,8 @@ export interface ClassGroup {
   lessonIds: string[];
   examIds: string[];
   grade?: 'Grade 1' | 'Grade 2' | 'Grade 3';
+  status: 'active' | 'scheduled' | 'draft';
+  activationDate?: string;
 }
 
 export interface Exam {
@@ -79,6 +88,7 @@ export interface Student {
   paymentProofUrl?: string;
   paymentAmount?: number;
   paymentDate?: string;
+  lessonProgress?: Record<string, { videoWatched: boolean; contentRead: boolean; homeworkScore?: number }>;
 }
 
 export interface ExamSubmission {

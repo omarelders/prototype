@@ -17,7 +17,8 @@ import {
   Referral,
   CommissionTier,
   AffiliatePayout,
-  PlatformTransaction
+  PlatformTransaction,
+  AcademicLevel
 } from '../types';
 
 interface AppStateContextProps {
@@ -26,9 +27,11 @@ interface AppStateContextProps {
   currentRole: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing' | 'admin' | 'affiliate';
   setRole: (role: 'visitor' | 'onboarding' | 'teacher' | 'student' | 'student-landing' | 'admin' | 'affiliate') => void;
   
-  // Custom teacher levels
-  activeLevels: string[];
-  setActiveLevels: (levels: string[]) => void;
+  // Academic levels
+  academicLevels: AcademicLevel[];
+  addAcademicLevel: (level: AcademicLevel) => void;
+  updateAcademicLevel: (level: AcademicLevel) => void;
+  deleteAcademicLevel: (id: string) => void;
   
   // Teacher branding & profile
   teacherProfile: {
@@ -82,7 +85,7 @@ interface AppStateContextProps {
   deleteLesson: (lessonId: string) => void;
   addClass: (cls: ClassGroup) => void;
   updateClass: (cls: ClassGroup) => void;
-  updateLessonGroupLinks: (payload: { lessonId?: string; groupId?: string; linkedIds: string[] }) => void;
+  updateLessonGroupLinks: (payload: { lessonId?: string; examId?: string; groupId?: string; linkedIds: string[]; type?: 'lesson' | 'exam' }) => void;
   addExam: (exam: Exam) => void;
   updateExam: (exam: Exam) => void;
   deleteExam: (examId: string) => void;
@@ -127,6 +130,15 @@ const defaultFolders: QuestionFolder[] = [
   { id: 'f-g1-chem', name: 'الوحدة الأولى: الكيمياء مركز العلوم', parentId: null, level: 'g1' },
   { id: 'f-g2-math', name: 'الوحدة الأولى: الجبر وحساب المثلثات', parentId: null, level: 'g2' },
   { id: 'f-g2-phys', name: 'الوحدة الأولى: الضوء والحرارة', parentId: null, level: 'g2' }
+];
+
+const defaultAcademicLevels: AcademicLevel[] = [
+  { id: 'prep1', name: 'الصف الأول الإعدادي', description: 'المرحلة الإعدادية', labelNum: '١' },
+  { id: 'prep2', name: 'الصف الثاني الإعدادي', description: 'المرحلة الإعدادية', labelNum: '٢' },
+  { id: 'prep3', name: 'الصف الثالث الإعدادي', description: 'المرحلة الإعدادية', labelNum: '٣' },
+  { id: 'g1', name: 'الصف الأول الثانوي', description: 'المرحلة الثانوية', labelNum: '١' },
+  { id: 'g2', name: 'الصف الثاني الثانوي', description: 'المرحلة الثانوية', labelNum: '٢' },
+  { id: 'g3', name: 'الصف الثالث الثانوي', description: 'المرحلة الثانوية', labelNum: '٣' }
 ];
 
 const defaultQuestions: Question[] = [
@@ -284,7 +296,8 @@ const defaultClasses: ClassGroup[] = [
     description: 'Highschool Third Year (الثانوية العامة) physics and chemistry curriculum group.',
     lessonIds: ['l-1', 'l-2'],
     examIds: ['e-1'],
-    grade: 'Grade 1'
+    grade: 'Grade 1',
+    status: 'active'
   }
 ];
 
@@ -310,7 +323,11 @@ const defaultStudents: Student[] = [
     subscriptionType: 'monthly',
     status: 'active',
     progress: 75,
-    lastSeen: '2026-06-30T12:05:00Z'
+    lastSeen: '2026-06-30T12:05:00Z',
+    lessonProgress: {
+      'l-1': { videoWatched: true, contentRead: true, homeworkScore: 10 },
+      'l-2': { videoWatched: true, contentRead: false }
+    }
   },
   {
     id: 'st-2',
@@ -320,7 +337,11 @@ const defaultStudents: Student[] = [
     subscriptionType: 'monthly',
     status: 'active',
     progress: 40,
-    lastSeen: '2026-06-29T18:44:00Z'
+    lastSeen: '2026-06-29T18:44:00Z',
+    lessonProgress: {
+      'l-1': { videoWatched: true, contentRead: true, homeworkScore: 8 },
+      'l-2': { videoWatched: false, contentRead: false }
+    }
   },
   {
     id: 'st-3',
@@ -395,7 +416,11 @@ const defaultStudents: Student[] = [
     subscriptionType: 'monthly',
     status: 'active',
     progress: 90,
-    lastSeen: '2026-07-02T21:40:00Z'
+    lastSeen: '2026-07-02T21:40:00Z',
+    lessonProgress: {
+      'l-1': { videoWatched: true, contentRead: true, homeworkScore: 12 },
+      'l-2': { videoWatched: true, contentRead: true, homeworkScore: 10 }
+    }
   },
   {
     id: 'st-9',
@@ -663,9 +688,9 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return Number(localStorage.getItem('ab_onboard_step') || '1');
   });
 
-  // Custom teacher levels
-  const [activeLevels, setActiveLevels] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ab_active_levels');
+  // Academic levels
+  const [academicLevels, setAcademicLevelsState] = useState<AcademicLevel[]>(() => {
+    const saved = localStorage.getItem('ab_academic_levels');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -673,7 +698,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // use default
       }
     }
-    return ['g1', 'g2', 'g3']; // default secondary levels
+    return defaultAcademicLevels; // Use the default ones we added
   });
 
   // Teacher Profile
@@ -740,7 +765,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('ab_events', JSON.stringify(events));
     localStorage.setItem('ab_wallet_balance', walletBalance.toString());
     localStorage.setItem('ab_wallet_transactions', JSON.stringify(walletTransactions));
-    localStorage.setItem('ab_active_levels', JSON.stringify(activeLevels));
+    localStorage.setItem('ab_academic_levels', JSON.stringify(academicLevels));
     localStorage.setItem('ab_global_teachers', JSON.stringify(globalTeachers));
     localStorage.setItem('ab_affiliates', JSON.stringify(affiliates));
     localStorage.setItem('ab_referrals', JSON.stringify(referrals));
@@ -750,7 +775,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [
     currentLanguage, currentRole, onboardingStep, teacherProfile,
     folders, questions, lessons, classes, exams, students,
-    submissions, coupons, announcements, tickets, events, walletBalance, walletTransactions, activeLevels,
+    submissions, coupons, announcements, tickets, events, walletBalance, walletTransactions, academicLevels,
     globalTeachers, affiliates, referrals, commissionTiers, affiliatePayouts, platformTransactions
   ]);
 
@@ -758,7 +783,14 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setTeacherProfileState((prev: any) => ({ ...prev, ...profile }));
   };
 
-  // Mutators
+  const addAcademicLevel = (level: AcademicLevel) => setAcademicLevelsState(prev => [...prev, level]);
+  const updateAcademicLevel = (updated: AcademicLevel) => {
+    setAcademicLevelsState(prev => prev.map(l => l.id === updated.id ? updated : l));
+  };
+  const deleteAcademicLevel = (id: string) => {
+    setAcademicLevelsState(prev => prev.filter(l => l.id !== id));
+  };
+
   const addFolder = (folder: QuestionFolder) => setFolders(prev => [...prev, folder]);
   const deleteFolder = (folderId: string) => {
     setFolders(prev => prev.filter(f => f.id !== folderId));
@@ -795,16 +827,25 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateClass = (updated: ClassGroup) => {
     setClasses(prev => prev.map(c => c.id === updated.id ? updated : c));
   };
-  const updateLessonGroupLinks = (payload: { lessonId?: string; groupId?: string; linkedIds: string[] }) => {
-    if (payload.lessonId) {
-      const { lessonId, linkedIds } = payload;
+  const updateLessonGroupLinks = (payload: { lessonId?: string; examId?: string; groupId?: string; linkedIds: string[]; type?: 'lesson' | 'exam' }) => {
+    const itemType = payload.type || (payload.examId ? 'exam' : 'lesson');
+    
+    if (payload.lessonId || payload.examId) {
+      const targetId = payload.lessonId || payload.examId;
+      const { linkedIds } = payload;
       setClasses(prev => prev.map(cls => {
         const isLinked = linkedIds.includes(cls.id);
-        const hasLesson = cls.lessonIds.includes(lessonId);
-        if (isLinked && !hasLesson) {
-          return { ...cls, lessonIds: [...cls.lessonIds, lessonId] };
-        } else if (!isLinked && hasLesson) {
-          return { ...cls, lessonIds: cls.lessonIds.filter(id => id !== lessonId) };
+        const list = itemType === 'exam' ? cls.examIds : cls.lessonIds;
+        const hasItem = list?.includes(targetId!);
+        
+        if (isLinked && !hasItem) {
+          return itemType === 'exam' 
+            ? { ...cls, examIds: [...(cls.examIds || []), targetId!] }
+            : { ...cls, lessonIds: [...(cls.lessonIds || []), targetId!] };
+        } else if (!isLinked && hasItem) {
+          return itemType === 'exam'
+            ? { ...cls, examIds: cls.examIds.filter(id => id !== targetId) }
+            : { ...cls, lessonIds: cls.lessonIds.filter(id => id !== targetId) };
         }
         return cls;
       }));
@@ -812,7 +853,9 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { groupId, linkedIds } = payload;
       setClasses(prev => prev.map(cls => {
         if (cls.id === groupId) {
-          return { ...cls, lessonIds: linkedIds };
+          return itemType === 'exam'
+            ? { ...cls, examIds: linkedIds }
+            : { ...cls, lessonIds: linkedIds };
         }
         return cls;
       }));
@@ -931,7 +974,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       currentRole, setRole,
       teacherProfile, updateTeacherProfile,
       onboardingStep, setOnboardingStep,
-      activeLevels, setActiveLevels,
+      academicLevels, addAcademicLevel, updateAcademicLevel, deleteAcademicLevel,
       folders, questions, lessons, classes, exams, students, submissions, coupons, announcements, tickets, events,
       walletBalance, walletTransactions,
       globalTeachers, affiliates, referrals, commissionTiers, affiliatePayouts, platformTransactions,
