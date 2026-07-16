@@ -92,18 +92,10 @@ function relativeTime(dateStr: string, isAr: boolean): string {
 
 /* ─── Main Component ────────────────────── */
 export default function StudentProfileView({ student, onBack }: StudentProfileViewProps) {
-  const { currentLanguage, classes, exams, submissions, questions } = useAppState();
+  const { currentLanguage, classes, exams, submissions, questions, lessons } = useAppState();
   const isAr = currentLanguage === 'ar';
   const [viewingSubmissionId, setViewingSubmissionId] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<'overview' | 'exams'>('overview');
-
-  if (viewingSubmissionId) {
-    const sub = submissions.find(s => s.id === viewingSubmissionId);
-    const exam = exams.find(e => e.id === sub?.examId);
-    if (sub && exam) {
-      return <ExamSubmissionViewer exam={exam} submission={sub} onBack={() => setViewingSubmissionId(null)} />;
-    }
-  }
 
   const t = {
     en: {
@@ -268,6 +260,14 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
   }
 
   const dir = isAr ? 'rtl' : 'ltr';
+
+  if (viewingSubmissionId) {
+    const sub = submissions.find(s => s.id === viewingSubmissionId);
+    const exam = exams.find(e => e.id === sub?.examId);
+    if (sub && exam) {
+      return <ExamSubmissionViewer exam={exam} submission={sub} onBack={() => setViewingSubmissionId(null)} />;
+    }
+  }
 
   return (
     <div dir={dir} className={`space-y-6 animate-fade-in`}>
@@ -587,7 +587,7 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
             <div className="mt-6 space-y-3 pt-4 border-t border-slate-100">
               <h4 className="text-xs font-bold text-slate-800 mb-3">{t.courseProgress}</h4>
               {studentClass.lessonIds.map(lessonId => {
-                const lesson = useAppState().lessons.find(l => l.id === lessonId);
+                const lesson = lessons.find(l => l.id === lessonId);
                 if (!lesson) return null;
                 const prog = student.lessonProgress?.[lessonId];
                 

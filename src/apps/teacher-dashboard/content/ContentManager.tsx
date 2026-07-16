@@ -421,7 +421,8 @@ export default function ContentManager() {
       description: cDesc,
       lessonIds: [],
       examIds: [],
-      grade: cGrade
+      grade: cGrade,
+      status: 'active'
     };
     addClass(newClass);
     setShowClassModal(false);
