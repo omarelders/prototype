@@ -3,13 +3,38 @@ import { useAppState } from '../../../shared/context/AppState';
 import { BookOpen, FileSpreadsheet, Layers, Calendar, Zap, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function ActivationManager() {
-  const { currentLanguage, lessons, exams, classes, updateLesson, updateExam, updateClass } = useAppState();
+  const { currentLanguage, lessons: allLessons, exams: allExams, classes: allClasses, academicLevels, updateLesson, updateExam, updateClass } = useAppState();
   const [subTab, setSubTab] = useState<'lessons' | 'exams' | 'classes'>('lessons');
+
+  const [selectedGrade, setSelectedGrade] = useState<string>('all');
 
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleTarget, setScheduleTarget] = useState<{type: 'lesson'|'exam'|'class', id: string, title: string, currentDate: string} | null>(null);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+
+  const classes = React.useMemo(() => {
+    if (selectedGrade === 'all') return allClasses;
+    return allClasses.filter(c => c.academicLevelId === selectedGrade);
+  }, [allClasses, selectedGrade]);
+
+  const lessons = React.useMemo(() => {
+    if (selectedGrade === 'all') return allLessons;
+    return allLessons.filter(l => {
+      if (l.academicLevelId === selectedGrade) return true;
+      const cls = allClasses.find(c => c.id === l.targetClass);
+      return cls?.academicLevelId === selectedGrade;
+    });
+  }, [allLessons, selectedGrade, allClasses]);
+
+  const exams = React.useMemo(() => {
+    if (selectedGrade === 'all') return allExams;
+    return allExams.filter(e => {
+      if (e.academicLevelId === selectedGrade) return true;
+      const cls = allClasses.find(c => c.id === e.targetClass);
+      return cls?.academicLevelId === selectedGrade;
+    });
+  }, [allExams, selectedGrade, allClasses]);
 
   // Translations
   const dict = {
@@ -48,7 +73,7 @@ export default function ActivationManager() {
   const t = dict[currentLanguage];
 
   const handleLessonToggle = (lessonId: string, currentStatus: string) => {
-    const lesson = lessons.find(l => l.id === lessonId);
+    const lesson = allLessons.find(l => l.id === lessonId);
     if (lesson) {
       const newStatus = currentStatus === 'published' ? 'draft' : 'published';
       updateLesson({ ...lesson, status: newStatus });
@@ -56,7 +81,7 @@ export default function ActivationManager() {
   };
 
   const handleExamToggle = (examId: string, currentStatus: string) => {
-    const exam = exams.find(e => e.id === examId);
+    const exam = allExams.find(e => e.id === examId);
     if (exam) {
       const newStatus = currentStatus === 'active' ? 'scheduled' : 'active';
       // If it's being toggled to scheduled but has no date, default to tomorrow
@@ -71,7 +96,7 @@ export default function ActivationManager() {
   };
 
   const handleClassToggle = (classId: string, currentStatus: string) => {
-    const cls = classes.find(c => c.id === classId);
+    const cls = allClasses.find(c => c.id === classId);
     if (cls) {
       const newStatus = currentStatus === 'active' ? 'scheduled' : 'active';
       let date = cls.activationDate;
@@ -107,17 +132,17 @@ export default function ActivationManager() {
     const newDate = scheduleTime ? `${scheduleDate}T${scheduleTime}:00Z` : `${scheduleDate}T00:00:00Z`;
     
     if (scheduleTarget.type === 'lesson') {
-      const lesson = lessons.find(l => l.id === scheduleTarget.id);
+      const lesson = allLessons.find(l => l.id === scheduleTarget.id);
       if (lesson) {
         updateLesson({ ...lesson, status: 'scheduled', activationDate: newDate });
       }
     } else if (scheduleTarget.type === 'exam') {
-      const exam = exams.find(e => e.id === scheduleTarget.id);
+      const exam = allExams.find(e => e.id === scheduleTarget.id);
       if (exam) {
         updateExam({ ...exam, status: 'scheduled', activationDate: newDate });
       }
     } else if (scheduleTarget.type === 'class') {
-      const cls = classes.find(c => c.id === scheduleTarget.id);
+      const cls = allClasses.find(c => c.id === scheduleTarget.id);
       if (cls) {
         updateClass({ ...cls, status: 'scheduled', activationDate: newDate });
       }
@@ -176,10 +201,22 @@ export default function ActivationManager() {
             {subTab === 'exams' && t.examsTitle}
             {subTab === 'classes' && t.classesTitle}
           </h3>
-          <span className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-            <Zap className="h-3.5 w-3.5 text-amber-500" />
-            <span>{currentLanguage === 'en' ? 'Real-time Sync' : 'مزامنة فورية'}</span>
-          </span>
+          <div className="flex items-center gap-4">
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="text-sm font-semibold border border-slate-200 rounded-xl px-4 py-2 bg-slate-50 text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="all">{currentLanguage === 'ar' ? 'جميع الصفوف' : 'All Grades'}</option>
+              {academicLevels.map(level => (
+                <option key={level.id} value={level.id}>{level.name}</option>
+              ))}
+            </select>
+            <span className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md hidden sm:flex">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span>{currentLanguage === 'en' ? 'Real-time Sync' : 'مزامنة فورية'}</span>
+            </span>
+          </div>
         </div>
 
         <div className="space-y-4">

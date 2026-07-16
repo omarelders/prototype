@@ -17,17 +17,25 @@ interface DashboardHomeProps {
 }
 
 export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
-  const { currentLanguage, students, lessons, exams, submissions, events } = useAppState();
+  const { currentLanguage, students, lessons, exams, submissions, events, classes } = useAppState();
 
   const dict = {
     en: {
       title: "Dashboard Overview",
       stats: {
-        students: "Active Students",
-        lessons: "Published Lessons",
-        exams: "Active Exams",
+        students: "Total Students",
+        lessons: "Total Lessons",
+        chapters: "Total Chapters",
+        exams: "Total Exams",
         revenue: "Monthly Revenue",
         pendingAlert: "pending activation"
+      },
+      hoverStats: {
+        students: { active: "Active", inactive: "Inactive", pending: "Requests" },
+        lessons: { published: "Published", editing: "Editing", scheduled: "Scheduled" },
+        chapters: { active: "Active", editing: "Draft", scheduled: "Scheduled" },
+        exams: { active: "Active", completed: "Completed", scheduled: "Scheduled" },
+        finance: { revenue: "Revenue", expenses: "Expenses" }
       },
       notifications: "Urgent Actions Needed",
       noNotifications: "No urgent actions. All caught up!",
@@ -48,11 +56,19 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
     ar: {
       title: "لوحة التحكم الرئيسية",
       stats: {
-        students: "الطلاب النشطين",
-        lessons: "الدروس المنشورة",
-        exams: "الامتحانات المتاحة",
-        revenue: "الأرباح الشهرية",
+        students: "إجمالي الطلاب",
+        lessons: "إجمالي الدروس",
+        chapters: "إجمالي الفصول",
+        exams: "إجمالي الامتحانات",
+        revenue: "الملخص المالي",
         pendingAlert: "بانتظار التفعيل"
+      },
+      hoverStats: {
+        students: { active: "الطلاب المفعلين", inactive: "الطلاب غير المفعلين", pending: "طلبات التفعيل" },
+        lessons: { published: "درس منشور", editing: "درس تحت التعديل", scheduled: "درس مجدول" },
+        chapters: { active: "فصل مفعل", editing: "فصل تحت التعديل", scheduled: "فصل مجدول" },
+        exams: { active: "امتحان نشط", completed: "امتحان مكتمل", scheduled: "امتحان مجدول" },
+        finance: { revenue: "إيرادات", expenses: "مصروفات" }
       },
       notifications: "إجراءات عاجلة مطلوبة",
       noNotifications: "لا توجد تنبيهات عاجلة حالياً.",
@@ -77,12 +93,24 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
   // Derived counts
   const activeStudents = students.filter(s => s.status === 'active').length;
   const pendingStudents = students.filter(s => s.status === 'pending').length;
+  const inactiveStudents = students.length - activeStudents - pendingStudents;
+
   const publishedLessons = lessons.filter(l => l.status === 'published').length;
+  const editingLessons = lessons.filter(l => l.status === 'draft').length;
+  const scheduledLessons = lessons.filter(l => l.status === 'scheduled').length;
+
   const activeExams = exams.filter(e => e.status === 'active').length;
+  const completedExams = exams.filter(e => e.status === 'completed').length;
+  const scheduledExams = exams.filter(e => e.status === 'scheduled').length;
+
+  const activeChapters = classes.filter(c => c.status === 'active').length;
+  const editingChapters = classes.filter(c => c.status === 'draft').length;
+  const scheduledChapters = classes.filter(c => c.status === 'scheduled').length;
   
   // Calculate total monthly revenue based on active students
   const teacherMonthlyFee = 150; // default EGP
   const monthlyRevenue = activeStudents * teacherMonthlyFee;
+  const estimatedExpenses = Math.round(monthlyRevenue * 0.1); // Placeholder 10%
 
   // Build dynamic notifications
   const notifications: { id: string; type: 'payment' | 'grading'; text: string; dataId: string; tab: string }[] = [];
@@ -134,10 +162,10 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard 
           title={t.stats.students} 
-          value={activeStudents} 
+          value={students.length} 
           colorClass="bg-indigo-50 text-indigo-600" 
           icon={Users} 
           extraNode={pendingStudents > 0 && (
@@ -145,34 +173,68 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
               {pendingStudents} {t.stats.pendingAlert}
             </span>
           )} 
+          hoverStats={[
+            { label: t.hoverStats.students.active, value: activeStudents, colorClass: 'text-emerald-600' },
+            { label: t.hoverStats.students.inactive, value: inactiveStudents, colorClass: 'text-slate-500' },
+            { label: t.hoverStats.students.pending, value: pendingStudents, colorClass: 'text-amber-500' }
+          ]}
+        />
+        <StatCard 
+          title={t.stats.chapters} 
+          value={classes.length} 
+          colorClass="bg-sky-50 text-sky-600" 
+          icon={BookOpen} 
+          hoverStats={[
+            { label: t.hoverStats.chapters.active, value: activeChapters, colorClass: 'text-emerald-600' },
+            { label: t.hoverStats.chapters.editing, value: editingChapters, colorClass: 'text-amber-500' },
+            { label: t.hoverStats.chapters.scheduled, value: scheduledChapters, colorClass: 'text-sky-600' }
+          ]}
         />
         <StatCard 
           title={t.stats.lessons} 
-          value={publishedLessons} 
+          value={lessons.length} 
           colorClass="bg-blue-50 text-blue-600" 
           icon={BookOpen} 
+          hoverStats={[
+            { label: t.hoverStats.lessons.published, value: publishedLessons, colorClass: 'text-emerald-600' },
+            { label: t.hoverStats.lessons.editing, value: editingLessons, colorClass: 'text-amber-500' },
+            { label: t.hoverStats.lessons.scheduled, value: scheduledLessons, colorClass: 'text-blue-600' }
+          ]}
           emptyStateAction={
+            lessons.length === 0 && (
             <button onClick={() => onNavigate('content')} className="text-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200 px-2.5 py-1 rounded-md font-bold transition-colors">
               {currentLanguage === 'en' ? 'Create first lesson →' : 'إنشاء الدرس الأول ←'}
             </button>
+            )
           }
         />
         <StatCard 
           title={t.stats.exams} 
-          value={activeExams} 
+          value={exams.length} 
           colorClass="bg-emerald-50 text-emerald-600" 
           icon={FileSpreadsheet} 
+          hoverStats={[
+            { label: t.hoverStats.exams.active, value: activeExams, colorClass: 'text-emerald-600' },
+            { label: t.hoverStats.exams.completed, value: completedExams, colorClass: 'text-slate-500' },
+            { label: t.hoverStats.exams.scheduled, value: scheduledExams, colorClass: 'text-amber-500' }
+          ]}
           emptyStateAction={
+            exams.length === 0 && (
             <button onClick={() => onNavigate('exams')} className="text-[10px] bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2.5 py-1 rounded-md font-bold transition-colors">
               {currentLanguage === 'en' ? 'Create first exam →' : 'إنشاء أول اختبار ←'}
             </button>
+            )
           }
         />
         <StatCard 
           title={t.stats.revenue} 
-          value={`${monthlyRevenue} ${t.egp}`} 
+          value={`${monthlyRevenue - estimatedExpenses} ${t.egp}`} 
           colorClass="bg-purple-50 text-purple-600" 
           icon={DollarSign} 
+          hoverStats={[
+            { label: t.hoverStats.finance.revenue, value: `${monthlyRevenue} ${t.egp}`, colorClass: 'text-emerald-600' },
+            { label: t.hoverStats.finance.expenses, value: `${estimatedExpenses} ${t.egp}`, colorClass: 'text-rose-500' }
+          ]}
         />
       </div>
 
@@ -259,18 +321,30 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
   );
 }
 
-function StatCard({ title, value, colorClass, icon: Icon, extraNode, emptyStateAction }: any) {
+function StatCard({ title, value, colorClass, icon: Icon, extraNode, emptyStateAction, hoverStats }: any) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+    <div className="group relative bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
       <div className="space-y-1.5">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{title}</span>
         <p className="text-2xl font-black text-slate-900 leading-none">{value}</p>
         {extraNode}
         {emptyStateAction && <div className="pt-1.5">{emptyStateAction}</div>}
       </div>
-      <div className={`p-4 rounded-2xl ${colorClass}`}>
+      <div className={`p-3 rounded-xl flex-shrink-0 ${colorClass}`}>
         <Icon className="h-6 w-6" />
       </div>
+
+      {/* Hover Dropdown */}
+      {hoverStats && hoverStats.length > 0 && (
+        <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 translate-y-2 group-hover:translate-y-0 p-3 space-y-2">
+          {hoverStats.map((stat: any, idx: number) => (
+            <div key={idx} className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-600">{stat.label}</span>
+              <span className={`text-xs font-black ${stat.colorClass}`}>{stat.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

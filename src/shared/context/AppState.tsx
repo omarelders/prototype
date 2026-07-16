@@ -256,7 +256,7 @@ const defaultLessons: Lesson[] = [
         exerciseQuestionIds: ['q-1']
       }
     ],
-    grade: 'Grade 1',
+    academicLevelId: 'g1',
     subject: 'Chemistry'
   },
   {
@@ -284,7 +284,7 @@ const defaultLessons: Lesson[] = [
         exerciseQuestionIds: ['q-2', 'q-3']
       }
     ],
-    grade: 'Grade 1',
+    academicLevelId: 'g1',
     subject: 'Physics'
   }
 ];
@@ -296,7 +296,7 @@ const defaultClasses: ClassGroup[] = [
     description: 'Highschool Third Year (الثانوية العامة) physics and chemistry curriculum group.',
     lessonIds: ['l-1', 'l-2'],
     examIds: ['e-1'],
-    grade: 'Grade 1',
+    academicLevelId: 'g1',
     status: 'active'
   }
 ];
@@ -309,6 +309,7 @@ const defaultExams: Exam[] = [
     duration: 30, // 30 mins
     attempts: 2,
     targetClass: 'c-1',
+    academicLevelId: 'g1',
     activationDate: '2026-06-30T10:00:00Z',
     status: 'active'
   }

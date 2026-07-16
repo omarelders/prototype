@@ -100,11 +100,34 @@ function KpiCard({
    Main Component
 ───────────────────────────────────────────── */
 export default function AnalyticsDashboard() {
-  const { currentLanguage, students, exams, submissions, questions, classes } = useAppState();
+  const { currentLanguage, students: allStudents, exams: allExams, submissions: allSubmissions, questions, classes, academicLevels } = useAppState();
 
   const [leaderboardSort, setLeaderboardSort] = useState<'score' | 'name'>('score');
+  const [selectedGrade, setSelectedGrade] = useState<string>('all');
 
   const isAr = currentLanguage === 'ar';
+
+  /* ── Filtered base data ── */
+  const students = useMemo(() => {
+    if (selectedGrade === 'all') return allStudents;
+    const validClassIds = classes.filter(c => c.academicLevelId === selectedGrade).map(c => c.id);
+    return allStudents.filter(s => validClassIds.includes(s.classId));
+  }, [allStudents, classes, selectedGrade]);
+
+  const submissions = useMemo(() => {
+    if (selectedGrade === 'all') return allSubmissions;
+    const validStudentIds = new Set(students.map(s => s.id));
+    return allSubmissions.filter(s => validStudentIds.has(s.studentId));
+  }, [allSubmissions, students, selectedGrade]);
+
+  const exams = useMemo(() => {
+     if (selectedGrade === 'all') return allExams;
+     return allExams.filter(e => {
+       if (e.academicLevelId === selectedGrade) return true;
+       const cls = classes.find(c => c.id === e.targetClass);
+       return cls?.academicLevelId === selectedGrade;
+     });
+  }, [allExams, selectedGrade, classes]);
 
   /* ── Derived analytics ── */
   const activeStudents = useMemo(() => students.filter(s => s.status === 'active'), [students]);
@@ -428,9 +451,21 @@ export default function AnalyticsDashboard() {
           SECTION 1 — KPI Strip
       ════════════════════════════════════ */}
       <section>
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-base font-black text-slate-900">{t.sectionKpi}</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-indigo-600" />
+            <h2 className="text-base font-black text-slate-900">{t.sectionKpi}</h2>
+          </div>
+          <select
+            value={selectedGrade}
+            onChange={(e) => setSelectedGrade(e.target.value)}
+            className="text-sm font-semibold border border-slate-200 rounded-xl px-4 py-2 bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+          >
+            <option value="all">{isAr ? 'جميع المراحل' : 'All Grades'}</option>
+            {academicLevels.map(level => (
+              <option key={level.id} value={level.id}>{level.name}</option>
+            ))}
+          </select>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <KpiCard

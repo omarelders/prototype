@@ -30,7 +30,7 @@ import {
   Settings
 } from 'lucide-react';
 
-export default function QuestionBank() {
+export default function QuestionBank({ gradeId }: { gradeId: string }) {
   const { 
     currentLanguage, 
     folders, 
@@ -39,22 +39,10 @@ export default function QuestionBank() {
     deleteFolder, 
     addQuestion, 
     updateQuestion, 
-    deleteQuestion,
-    academicLevels,
-    addAcademicLevel,
-    deleteAcademicLevel
+    deleteQuestion
   } = useAppState();
 
-  // State filters
-  const [selectedLevel, setSelectedLevel] = useState<string>(() => {
-    return academicLevels.length > 0 ? academicLevels[0].id : 'g3';
-  });
-  
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(() => {
-    const initialLevel = academicLevels.length > 0 ? academicLevels[0].id : 'g3';
-    const initialFolders = folders.filter(f => (f.level || 'g3') === initialLevel);
-    return initialFolders.length > 0 ? initialFolders[0].id : null;
-  });
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'mcq' | 'essay'>('all');
@@ -66,21 +54,9 @@ export default function QuestionBank() {
   
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-
-  // Level configuration state
-  const [showLevelConfigModal, setShowLevelConfigModal] = useState(false);
-  const [newStageName, setNewStageName] = useState('');
-
-  // Keep selectedLevel valid
+  // Sync selectedFolderId when gradeId or folders change
   React.useEffect(() => {
-    if (academicLevels.length > 0 && !academicLevels.find(l => l.id === selectedLevel)) {
-      setSelectedLevel(academicLevels[0].id);
-    }
-  }, [academicLevels, selectedLevel]);
-
-  // Sync selectedFolderId when selectedLevel or folders change
-  React.useEffect(() => {
-    const levelFolders = folders.filter(f => (f.level || 'g3') === selectedLevel);
+    const levelFolders = folders.filter(f => f.level === gradeId);
     if (levelFolders.length > 0) {
       const isSelectedFolderInLevel = levelFolders.some(f => f.id === selectedFolderId);
       if (!isSelectedFolderInLevel) {
@@ -89,7 +65,7 @@ export default function QuestionBank() {
     } else {
       setSelectedFolderId(null);
     }
-  }, [selectedLevel, folders]);
+  }, [gradeId, folders, selectedFolderId]);
 
   // Question Editor form state
   const [qTitle, setQTitle] = useState('');
@@ -99,27 +75,7 @@ export default function QuestionBank() {
   const [qCorrect, setQCorrect] = useState(0);
   const [qModelAnswer, setQModelAnswer] = useState('');
 
-  const getLevelStats = (level: string) => {
-    const levelF = folders.filter(f => (f.level || 'g3') === level);
-    const fIds = levelF.map(f => f.id);
-    const levelQ = questions.filter(q => fIds.includes(q.folderId));
-    return {
-      foldersCount: levelF.length,
-      questionsCount: levelQ.length
-    };
-  };
-
-  const handleLevelChange = (level: string) => {
-    setSelectedLevel(level);
-    const filtered = folders.filter(f => (f.level || 'g3') === level);
-    if (filtered.length > 0) {
-      setSelectedFolderId(filtered[0].id);
-    } else {
-      setSelectedFolderId(null);
-    }
-  };
-
-  const levelFolders = folders.filter(f => (f.level || 'g3') === selectedLevel);
+  const levelFolders = folders.filter(f => f.level === gradeId);
 
   // Translations
   const dict = {
@@ -211,7 +167,7 @@ export default function QuestionBank() {
       id: `f-${Date.now()}`,
       name: newFolderName,
       parentId: null,
-      level: selectedLevel
+      level: gradeId
     };
     addFolder(newF);
     setShowFolderModal(false);
@@ -271,7 +227,7 @@ export default function QuestionBank() {
     // level isolation check
     const qFolder = folders.find(f => f.id === q.folderId);
     const qLevel = qFolder ? (qFolder.level || 'g3') : 'g3';
-    if (qLevel !== selectedLevel) return false;
+    if (qLevel !== gradeId) return false;
 
     // folder check
     if (selectedFolderId && q.folderId !== selectedFolderId) return false;
@@ -307,113 +263,6 @@ export default function QuestionBank() {
 
   return (
     <div className="space-y-8 w-full">
-      {/* Premium Level Selector Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-3xl p-6 md:p-8 shadow-xl border border-white/[0.08] relative overflow-hidden text-left">
-        {/* Glow decorative effects */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-        
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white flex items-center gap-2.5">
-              <GraduationCap className="h-6 w-6 text-indigo-400" />
-              <span>{t.levelSelectorTitle}</span>
-            </h2>
-            <p className="text-xs md:text-sm font-semibold text-slate-400 mt-1 max-w-xl leading-relaxed">
-              {currentLanguage === 'en' 
-                ? "Organize your curriculum folders and manually author items for each specific grade level."
-                : "نظّم المجلدات الدراسية لكل مرحلة، واصنع أسئلتك يدويًا مع تقسيم ذكي وسلس للمستويات الدراسية."}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowLevelConfigModal(true)}
-            className="flex-shrink-0 bg-indigo-600/80 hover:bg-indigo-650 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer border border-white/10 shadow-lg shadow-indigo-950/30"
-          >
-            <Settings className="h-4 w-4" />
-            <span>{currentLanguage === 'en' ? 'Configure Levels' : 'إعداد المراحل الدراسية'}</span>
-          </button>
-        </div>
-
-        {/* Level Switcher Cards Grid */}
-        {academicLevels.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl relative z-10 mt-8">
-            <GraduationCap className="h-10 w-10 text-slate-500 mb-3.5 animate-bounce" />
-            <h4 className="text-sm font-bold text-white mb-1.5">
-              {currentLanguage === 'en' ? 'No Academic Levels Configured' : 'لم يتم إعداد مراحل دراسية'}
-            </h4>
-            <p className="text-xs text-slate-400 max-w-xs mb-5 leading-relaxed">
-              {currentLanguage === 'en' 
-                ? 'Select the stages and grade levels you teach to access folders and questions.'
-                : 'يرجى تحديد المراحل والصفوف الدراسية التي تقوم بتدريسها للبدء.'}
-            </p>
-            <button
-              onClick={() => setShowLevelConfigModal(true)}
-              className="bg-indigo-650 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-indigo-950/40"
-            >
-              <Settings className="h-4 w-4" />
-              <span>{currentLanguage === 'en' ? 'Configure Levels' : 'إعداد المراحل الدراسية'}</span>
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8 relative z-10">
-            {academicLevels.map((levelInfo) => {
-              const levelId = levelInfo.id;
-              const isSelected = selectedLevel === levelId;
-              const stats = getLevelStats(levelId);
-              
-              const levelTitle = levelInfo.name;
-              const levelSub = levelInfo.description || '';
-
-              return (
-                <button
-                  key={levelId}
-                  type="button"
-                  onClick={() => handleLevelChange(levelId)}
-                  className={`group text-left p-5 rounded-2xl border transition-all relative overflow-hidden duration-300 flex flex-col justify-between h-36 cursor-pointer ${
-                    isSelected 
-                      ? 'border-indigo-500 bg-slate-900/80 shadow-lg shadow-indigo-950/40 ring-1 ring-indigo-500/20 -translate-y-1' 
-                      : 'border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 hover:border-slate-700 hover:-translate-y-0.5'
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-gradient-xy" />
-                  )}
-
-                  <div className="flex justify-between items-start w-full">
-                    <div className="space-y-1">
-                      <span className="font-extrabold text-sm md:text-base text-white group-hover:text-indigo-200 transition-colors block">
-                        {levelTitle}
-                      </span>
-                      <span className="font-semibold text-[10px] md:text-xs text-slate-400 block">
-                        {levelSub}
-                      </span>
-                    </div>
-                    
-                    <div className={`h-8 w-8 rounded-full border border-slate-700/60 flex items-center justify-center font-extrabold text-xs transition-colors ${
-                      isSelected ? 'bg-slate-800 text-white border-indigo-500/40' : 'bg-slate-950/60 text-slate-500 group-hover:text-slate-300'
-                    }`}>
-                      {levelInfo.labelNum || '•'}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 border-t border-slate-800/80 pt-3.5 mt-3.5 w-full text-[10px] md:text-xs font-bold text-slate-400">
-                    <div className="flex items-center gap-1">
-                      <Folder className="h-3.5 w-3.5 text-slate-500" />
-                      <span>{stats.foldersCount} {t.foldersCountText}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <HelpCircle className="h-3.5 w-3.5 text-slate-500" />
-                      <span>{stats.questionsCount} {t.questionsCountText}</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       <div className="grid lg:grid-cols-12 gap-8">
         {/* Sidebar Folders */}
@@ -645,107 +494,7 @@ export default function QuestionBank() {
         />
       )}
 
-      {/* 4. Modal Academic Level Configurator */}
-      {showLevelConfigModal && (
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-8 space-y-6 text-left my-8 text-slate-800 animate-fade-in">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Settings className="h-5 w-5" />
-                <h3 className="font-extrabold text-slate-950 text-sm">
-                  {currentLanguage === 'en' ? 'Configure Academic Levels' : 'إعداد المراحل الدراسية'}
-                </h3>
-              </div>
-              <button 
-                onClick={() => setShowLevelConfigModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <p className="text-xs font-semibold text-slate-500 leading-relaxed">
-              {currentLanguage === 'en' 
-                ? 'Select the stages/grades you teach. Selected levels will be active on your dashboard.'
-                : 'اختر المراحل والصفوف الدراسية التي تقوم بتدريسها، وسيتم تفعيل الصفوف المحددة في لوحة التحكم الخاصة بك.'}
-            </p>
-
-            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-              <div className="grid grid-cols-1 gap-2">
-                {academicLevels.map((level) => {
-                  return (
-                    <div 
-                      key={level.id}
-                      className={`flex items-center justify-between p-3.5 rounded-xl border-2 border-slate-100 hover:border-slate-200 text-slate-700 font-semibold transition-all`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs">{level.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {level.description && (
-                           <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase">
-                             {level.description}
-                           </span>
-                        )}
-                        <button 
-                          onClick={() => deleteAcademicLevel(level.id)}
-                          className="text-slate-400 hover:text-rose-500 p-1 rounded-md transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                {academicLevels.length === 0 && (
-                  <p className="text-xs text-slate-500 text-center py-4">
-                    {currentLanguage === 'en' ? 'No levels added yet.' : 'لم يتم إضافة أي مرحلة دراسية.'}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 pt-4 mt-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newStageName}
-                  onChange={(e) => setNewStageName(e.target.value)}
-                  placeholder={currentLanguage === 'en' ? 'New level name (e.g., Grade 10)' : 'اسم المرحلة الجديدة (مثال: الصف الرابع)'}
-                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newStageName.trim()) {
-                      addAcademicLevel({
-                        id: `lvl-${Date.now()}`,
-                        name: newStageName.trim(),
-                        labelNum: (academicLevels.length + 1).toString()
-                      });
-                      setNewStageName('');
-                    }
-                  }}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
-                >
-                  {currentLanguage === 'en' ? 'Add' : 'إضافة'}
-                </button>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-3.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowLevelConfigModal(false)}
-                className="w-full bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer text-xs uppercase tracking-wider text-center"
-              >
-                {currentLanguage === 'en' ? 'Done' : 'تم'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

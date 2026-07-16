@@ -3,8 +3,9 @@ import { useAppState } from '../../../shared/context/AppState';
 import { Plus, Pencil, BarChart2, Trash2 } from 'lucide-react';
 import ExamBuilder from './ExamBuilder';
 
-export default function ExamsManager() {
+export default function ExamsManager({ gradeId }: { gradeId: string }) {
   const { currentLanguage, exams, deleteExam, classes } = useAppState();
+  const filteredExams = exams.filter(e => e.academicLevelId === gradeId);
   
   const [view, setView] = useState<'list' | 'builder'>('list');
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export default function ExamsManager() {
         examId={editingExamId} 
         onBack={() => setView('list')} 
         initialTab={initialBuilderTab}
+        gradeId={gradeId}
       />
     );
   }
@@ -55,7 +57,7 @@ export default function ExamsManager() {
             {currentLanguage === 'en' ? 'Exams & Quizzes' : 'الامتحانات والاختبارات'}
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            {exams.length} exam{exams.length !== 1 ? 's' : ''} total
+            {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} in this grade
           </p>
         </div>
         <button 
@@ -79,7 +81,7 @@ export default function ExamsManager() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-semibold text-slate-600">
-            {exams.map(exam => (
+            {filteredExams.map(exam => (
               <tr key={exam.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4 text-slate-900 font-bold max-w-xs truncate">
                   <button 
@@ -140,7 +142,7 @@ export default function ExamsManager() {
                 </td>
               </tr>
             ))}
-            {exams.length === 0 && (
+            {filteredExams.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-16 text-center">
                   <div className="text-4xl mb-3">📋</div>

@@ -12,9 +12,10 @@ interface ExamBuilderProps {
   examId: string | null;
   onBack: () => void;
   initialTab?: 'questions' | 'responses' | 'settings';
+  gradeId?: string;
 }
 
-export default function ExamBuilder({ examId, onBack, initialTab = 'questions' }: ExamBuilderProps) {
+export default function ExamBuilder({ examId, onBack, initialTab = 'questions', gradeId }: ExamBuilderProps) {
   const { currentLanguage, exams, addExam, updateExam, questions, addQuestion, updateQuestion, deleteQuestion, folders, classes } = useAppState();
   
   const [activeTab, setActiveTab] = useState<'questions' | 'responses' | 'settings'>(initialTab);
@@ -35,6 +36,7 @@ export default function ExamBuilder({ examId, onBack, initialTab = 'questions' }
         targetClass: classes[0]?.id || 'c-1',
         activationDate: new Date().toISOString(),
         status: 'scheduled' as const,
+        academicLevelId: gradeId || 'g1',
       };
     }
     return {
@@ -47,6 +49,7 @@ export default function ExamBuilder({ examId, onBack, initialTab = 'questions' }
       targetClass: classes[0]?.id || 'c-1',
       activationDate: new Date().toISOString(),
       status: 'scheduled' as const,
+      academicLevelId: gradeId || 'g1',
     };
   });
 

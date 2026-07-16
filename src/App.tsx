@@ -21,8 +21,7 @@ import TeacherLandingPage from './apps/public-site/landing/TeacherLandingPage';
 import TeacherDashboardLayout from './apps/teacher-dashboard/TeacherDashboardLayout';
 import DashboardHome from './apps/teacher-dashboard/dashboard/DashboardHome';
 import ContentManager from './apps/teacher-dashboard/content/ContentManager';
-import QuestionBank from './apps/teacher-dashboard/question-bank/QuestionBank';
-import ExamsManager from './apps/teacher-dashboard/exams/ExamsManager';
+
 import StudentsManager from './apps/teacher-dashboard/students/StudentsManager';
 import ActivationManager from './apps/teacher-dashboard/activation/ActivationManager';
 import CalendarView from './apps/teacher-dashboard/calendar/CalendarView';
@@ -103,8 +102,7 @@ function AppContent() {
         <TeacherDashboardLayout activeTab={teacherTab} setActiveTab={setTeacherTab}>
           {teacherTab === 'dashboard' && <DashboardHome onNavigate={setTeacherTab} />}
           {teacherTab === 'content' && <ContentManager />}
-          {teacherTab === 'question-bank' && <QuestionBank />}
-          {teacherTab === 'exams' && <ExamsManager />}
+
           {teacherTab === 'students' && <StudentsManager />}
           {teacherTab === 'grading' && <GradingManager />}
           {teacherTab === 'activation' && <ActivationManager />}

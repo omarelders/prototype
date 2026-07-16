@@ -45,17 +45,19 @@ export interface Lesson {
   activationDate?: string;
   targetClass: string;
   sections: LessonSection[];
-  grade?: 'Grade 1' | 'Grade 2' | 'Grade 3';
+  academicLevelId?: string;
   subject?: string;
+  grade?: string;
 }
 
 export interface ClassGroup {
   id: string;
   name: string;
   description: string;
+  grade?: string;
   lessonIds: string[];
   examIds: string[];
-  grade?: 'Grade 1' | 'Grade 2' | 'Grade 3';
+  academicLevelId?: string;
   status: 'active' | 'scheduled' | 'draft';
   activationDate?: string;
 }
@@ -68,7 +70,8 @@ export interface Exam {
   duration: number; // minutes
   attempts: number;
   targetClass: string;
-  targetGrade?: string; // e.g. Grade 1, Grade 2, Grade 3
+  targetGrade?: string;
+  academicLevelId?: string; // Links to AcademicLevel.id
   activationDate: string;
   status: 'active' | 'scheduled' | 'completed';
   shuffleQuestions?: boolean; // Randomize question order

@@ -234,8 +234,6 @@ export default function TeacherDashboardLayout({ activeTab, setActiveTab, childr
       items: [
         { id: 'dashboard', label: t.menu.dashboard, icon: Home },
         { id: 'content', label: t.menu.content, icon: BookOpen },
-        { id: 'question-bank', label: t.menu.questionBank, icon: HelpCircle },
-        { id: 'exams', label: t.menu.exams, icon: FileSpreadsheet },
       ]
     },
     {

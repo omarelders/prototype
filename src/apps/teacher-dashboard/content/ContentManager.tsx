@@ -3,8 +3,9 @@ import { useAppState } from '../../../shared/context/AppState';
 import { Lesson, LessonSection, ClassGroup, Question } from '../../../shared/types';
 import MathRenderer from '../../../shared/components/MathRenderer';
 import QuestionFormModal from '../../../shared/components/QuestionFormModal';
-import AIGeneratorModal from '../../../shared/components/AIGeneratorModal';
 import AssignLessonsToGroupModal from '../../../shared/components/AssignLessonsToGroupModal';
+import QuestionBank from '../question-bank/QuestionBank';
+import ExamsManager from '../exams/ExamsManager';
 import {
   BookOpen,
   Layers,
@@ -36,19 +37,30 @@ export default function ContentManager() {
     deleteLesson,
     classes,
     addClass,
+    updateClass,
+    exams,
     questions,
     addQuestion,
     folders,
-    updateLessonGroupLinks
+    updateLessonGroupLinks,
+    academicLevels,
+    addAcademicLevel,
+    deleteAcademicLevel
   } = useAppState();
 
-  const [activeTab, setActiveTab] = useState<'lessons' | 'classes'>('lessons');
+  const [selectedGradeId, setSelectedGradeId] = useState<string | null>(null);
+  const [showLevelConfigModal, setShowLevelConfigModal] = useState(false);
+  const [newStageName, setNewStageName] = useState('');
+
+  const [activeTab, setActiveTab] = useState<'lessons' | 'classes' | 'questions' | 'exams'>('lessons');
 
   // Translations
   const dict = {
     en: {
       lessons: "Lessons",
       classes: "Classes",
+      questions: "Question Bank",
+      exams: "Exams Lifecycle",
       createLessonBtn: "Create Lesson",
       createClassBtn: "Create Class",
       colTitle: "Lesson Title",
@@ -84,6 +96,8 @@ export default function ContentManager() {
     ar: {
       lessons: "الدروس والشروحات",
       classes: "الفصول",
+      questions: "بنك الأسئلة والمحاور",
+      exams: "الامتحانات والنتائج",
       createLessonBtn: "إنشاء درس جديد",
       createClassBtn: "إنشاء مجموعة جديدة",
       colTitle: "عنوان الدرس",
@@ -126,8 +140,11 @@ export default function ContentManager() {
   const [draggedSectionIdx, setDraggedSectionIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
+  const [showClassBuilder, setShowClassBuilder] = useState(false);
+  const [builderClass, setBuilderClass] = useState<ClassGroup | null>(null);
+  const [selectedClassItem, setSelectedClassItem] = useState<{type: 'lesson'|'exam', index: number} | null>(null);
+
   const [showQuestionModal, setShowQuestionModal] = useState(false);
-  const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [qModalType, setQModalType] = useState<'mcq' | 'essay'>('mcq');
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
 
@@ -140,7 +157,8 @@ export default function ContentManager() {
   const [lessonStatus, setLessonStatus] = useState<'draft' | 'published' | 'scheduled'>('published');
 
   // Hybrid linking states
-  const [cGrade, setCGrade] = useState<'Grade 1' | 'Grade 2' | 'Grade 3'>('Grade 1');
+  const [cGrade, setCGrade] = useState<string>('');
+  const [cStatus, setCStatus] = useState<'active' | 'scheduled' | 'draft'>('active');
   const [lessonSubject, setLessonSubject] = useState('Chemistry');
   const [assignModalConfig, setAssignModalConfig] = useState<{ mode: 'lesson-to-groups' | 'group-to-lessons' | 'exam-to-groups' | 'group-to-exams'; sourceId: string; gradeFilter?: string; isOptionalStep?: boolean } | null>(null);
   const [preSelectedGroupId, setPreSelectedGroupId] = useState<string | null>(null);
@@ -170,7 +188,7 @@ export default function ContentManager() {
       status: lessonStatus,
       targetClass: targetClassId,
       sections: [],
-      grade: selectedClass?.grade || 'Grade 1',
+      academicLevelId: selectedGradeId || selectedClass?.academicLevelId || 'g1',
       subject: lessonSubject
     };
     addLesson(newL);
@@ -359,22 +377,6 @@ export default function ContentManager() {
     setBuilderLesson({ ...builderLesson, sections: updated });
   };
 
-  const handleAISimulateQuestions = (sectionId: string) => {
-    if (!builderLesson) return;
-    // Generate a mock question and add to exercise list
-    const mockQId = `q-ai-${Date.now()}`;
-    const updated = builderLesson.sections.map(s => {
-      if (s.id === sectionId && s.exerciseQuestionIds) {
-        return {
-          ...s,
-          exerciseQuestionIds: [...s.exerciseQuestionIds, mockQId]
-        };
-      }
-      return s;
-    });
-    updateBuilderSections(updated);
-  };
-
   const handleSaveLesson = () => {
     if (!builderLesson) return;
 
@@ -382,7 +384,7 @@ export default function ContentManager() {
     const savedLesson = {
       ...builderLesson,
       status: 'published' as const,
-      grade: builderLesson.grade || classes.find(c => c.id === builderLesson.targetClass)?.grade || 'Grade 1',
+      academicLevelId: builderLesson.academicLevelId || selectedGradeId || classes.find(c => c.id === builderLesson.targetClass)?.academicLevelId || 'g1',
       subject: builderLesson.subject || 'Chemistry'
     };
 
@@ -400,7 +402,7 @@ export default function ContentManager() {
       setAssignModalConfig({
         mode: 'lesson-to-groups',
         sourceId: savedLesson.id,
-        gradeFilter: savedLesson.grade,
+        gradeFilter: savedLesson.academicLevelId,
         isOptionalStep: true
       });
       setIsNewLesson(false);
@@ -412,6 +414,16 @@ export default function ContentManager() {
   const [cName, setCName] = useState('');
   const [cDesc, setCDesc] = useState('');
 
+  useEffect(() => {
+    if (showClassModal) {
+      if (selectedGradeId) {
+        setCGrade(selectedGradeId);
+      } else if (academicLevels.length > 0 && !cGrade) {
+        setCGrade(academicLevels[0].id);
+      }
+    }
+  }, [showClassModal, selectedGradeId, academicLevels, cGrade]);
+
   const handleCreateClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!cName) return;
@@ -421,27 +433,138 @@ export default function ContentManager() {
       description: cDesc,
       lessonIds: [],
       examIds: [],
-      grade: cGrade,
-      status: 'active'
+      academicLevelId: cGrade || (academicLevels.length > 0 ? academicLevels[0].id : 'g1'),
+      status: cStatus
     };
     addClass(newClass);
     setShowClassModal(false);
     setCName('');
     setCDesc('');
+    setCStatus('active');
 
-    // Step 2: Open AssignLessonsToGroupModal for this new class group
-    setAssignModalConfig({
-      mode: 'group-to-lessons',
-      sourceId: newClass.id,
-      gradeFilter: newClass.grade,
-      isOptionalStep: true
-    });
+    setBuilderClass(newClass);
+    setShowClassBuilder(true);
+  };
+
+  const handleOpenClassBuilder = (cls: ClassGroup) => {
+    setBuilderClass(cls);
+    setShowClassBuilder(true);
   };
 
   return (
     <div className="space-y-6">
-      {/* View Header Tabs */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4">
+      {selectedGradeId === null ? (
+        <div className="w-full max-w-7xl mx-auto space-y-8">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                <Layers className="h-8 w-8 text-indigo-600" />
+                <span>{currentLanguage === 'en' ? 'Curriculum Overview' : 'النظرة العامة للمناهج'}</span>
+              </h2>
+              <p className="text-sm font-medium text-slate-500 mt-2 max-w-xl leading-relaxed">
+                {currentLanguage === 'en' 
+                  ? "Select an academic grade to manage its educational content, classes, question banks, and examinations."
+                  : "اختر مرحلة دراسية لإدارة محتواها التعليمي، فصولها، بنك الأسئلة، والامتحانات."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowLevelConfigModal(true)}
+              className="flex-shrink-0 bg-white hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all border border-slate-300 shadow-sm"
+            >
+              <Folder className="h-4 w-4 text-slate-500" />
+              <span>{currentLanguage === 'en' ? 'Manage Grades' : 'إدارة المراحل الدراسية'}</span>
+            </button>
+          </div>
+
+          {academicLevels.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center p-12 bg-slate-50 border border-slate-200 border-dashed rounded-3xl">
+              <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                <BookOpen className="h-8 w-8 text-indigo-400" />
+              </div>
+              <h4 className="text-lg font-bold text-slate-900 mb-2">
+                {currentLanguage === 'en' ? 'No Grades Configured Yet' : 'لم يتم إعداد مراحل دراسية بعد'}
+              </h4>
+              <p className="text-sm text-slate-500 max-w-md mb-6">
+                {currentLanguage === 'en' 
+                  ? 'Get started by configuring the academic grades and levels for your school or institution.'
+                  : 'ابدأ بإعداد المراحل والمستويات الدراسية لمدرستك أو مؤسستك.'}
+              </p>
+              <button
+                onClick={() => setShowLevelConfigModal(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-md"
+              >
+                {currentLanguage === 'en' ? 'Configure Your First Grade' : 'إعداد المرحلة الأولى'}
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {academicLevels.map((levelInfo) => (
+                <button
+                  key={levelInfo.id}
+                  type="button"
+                  onClick={() => setSelectedGradeId(levelInfo.id)}
+                  className="group relative flex flex-col text-left bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 overflow-hidden cursor-pointer h-full"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                  
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600 group-hover:scale-110 transition-transform duration-300">
+                        <BookOpen className="h-6 w-6" />
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm">
+                        {levelInfo.labelNum || '•'}
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">
+                      {levelInfo.name}
+                    </h3>
+                    <p className="text-sm text-slate-500 font-medium mb-6 line-clamp-2">
+                      {levelInfo.description}
+                    </p>
+                    
+                    <div className="mt-auto grid grid-cols-3 gap-2 pt-4 border-t border-slate-100">
+                      <div className="flex flex-col items-center p-2 rounded-lg bg-slate-50 group-hover:bg-indigo-50/50 transition-colors">
+                        <span className="text-lg font-bold text-slate-700">{lessons.filter(l => l.academicLevelId === levelInfo.id).length}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{currentLanguage === 'en' ? 'Lessons' : 'دروس'}</span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 rounded-lg bg-slate-50 group-hover:bg-indigo-50/50 transition-colors">
+                        <span className="text-lg font-bold text-slate-700">{classes.filter(c => c.academicLevelId === levelInfo.id).length}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{currentLanguage === 'en' ? 'Classes' : 'فصول'}</span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 rounded-lg bg-slate-50 group-hover:bg-indigo-50/50 transition-colors">
+                        <span className="text-lg font-bold text-slate-700">{exams.filter(e => e.academicLevelId === levelInfo.id).length}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{currentLanguage === 'en' ? 'Exams' : 'امتحانات'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Back to Grades button */}
+          <div className="flex items-center gap-4 mb-4">
+            <button 
+              onClick={() => setSelectedGradeId(null)}
+              className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {currentLanguage === 'en' ? 'Back to Grades' : 'العودة للمراحل'}
+            </button>
+            <h2 className="text-xl font-extrabold text-slate-800">
+              {academicLevels.find(l => l.id === selectedGradeId)?.name}
+            </h2>
+          </div>
+
+          {/* View Header Tabs */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4">
         <div className="flex gap-4">
           <button
             onClick={() => setActiveTab('lessons')}
@@ -456,6 +579,20 @@ export default function ContentManager() {
               }`}
           >
             {t.classes}
+          </button>
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'questions' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+          >
+            {t.questions}
+          </button>
+          <button
+            onClick={() => setActiveTab('exams')}
+            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'exams' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+          >
+            {t.exams}
           </button>
         </div>
 
@@ -483,7 +620,7 @@ export default function ContentManager() {
       {/* 1. Lessons Tab */}
       {activeTab === 'lessons' && !showBuilder && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {lessons.map(lesson => (
+          {lessons.filter(l => l.academicLevelId === selectedGradeId).map(lesson => (
             <div
               key={lesson.id}
               className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all group flex flex-col overflow-hidden"
@@ -508,7 +645,7 @@ export default function ContentManager() {
               <div className="p-5 flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                    {classes.find(c => c.id === lesson.targetClass)?.name || lesson.grade || 'General'}
+                    {classes.find(c => c.id === lesson.targetClass)?.name || 'General'}
                   </span>
                 </div>
                 <h3 className="font-extrabold text-slate-900 text-lg line-clamp-1">{lesson.title}</h3>
@@ -531,7 +668,7 @@ export default function ContentManager() {
                           setAssignModalConfig({
                             mode: 'lesson-to-groups',
                             sourceId: lesson.id,
-                            gradeFilter: lesson.grade
+                            gradeFilter: lesson.academicLevelId
                           });
                         }}
                         className="bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 px-2 py-1 rounded-md text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all"
@@ -877,20 +1014,6 @@ export default function ContentManager() {
 
                       {activeSection.type === 'exercises' && (
                         <div className="space-y-6">
-                          <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-indigo-50 border border-indigo-100 p-5 rounded-xl gap-4">
-                            <div>
-                              <h4 className="font-bold text-indigo-900 text-sm">Smart AI Generator</h4>
-                              <p className="text-xs text-indigo-600 mt-1 font-medium">Generate MCQ or Essay questions automatically based on previous lesson sections.</p>
-                            </div>
-                            <button
-                              onClick={() => setShowAIGenerator(true)}
-                              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 shrink-0"
-                            >
-                              <Sparkles className="h-4 w-4" />
-                              <span>{t.aiGenerate}</span>
-                            </button>
-                          </div>
-
                           <div className="flex gap-4">
                             <button
                               onClick={() => {
@@ -1055,119 +1178,198 @@ export default function ContentManager() {
       {/* 2. Classes Tab */}
       {activeTab === 'classes' && (
         <div className="space-y-6">
-          <div className="flex flex-col gap-6">
-            {classes.map(cls => (
-              <div key={cls.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden text-left flex flex-col">
-                {/* Header */}
-                <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-start">
-                  <div className="flex gap-4">
-                    <div className="bg-indigo-100 text-indigo-600 p-3 rounded-xl w-fit h-fit">
+          {!showClassBuilder && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {classes.filter(c => c.academicLevelId === selectedGradeId).map(cls => (
+                <div key={cls.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 relative flex flex-col group transition-all hover:shadow-md h-[240px]">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex flex-col items-start gap-2">
+                      {cls.grade && (
+                        <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-bold">
+                          {cls.grade}
+                        </span>
+                      )}
+                      <h4 className="font-extrabold text-slate-900 text-lg mt-2 line-clamp-1">{cls.name}</h4>
+                    </div>
+                    <div className="bg-indigo-50 text-indigo-600 p-3 rounded-xl shrink-0">
                       <Layers className="h-6 w-6" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <h4 className="font-extrabold text-slate-900 text-lg">{cls.name}</h4>
-                        {cls.grade && (
-                          <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md border border-indigo-100">
-                            {cls.grade}
-                          </span>
-                        )}
-                        {cls.status === 'draft' && (
-                          <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md">Draft</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-500 font-medium leading-relaxed">{cls.description}</p>
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6 line-clamp-2">{cls.description}</p>
+                  
+                  <div className="border-t border-slate-100 pt-4 flex justify-between mt-auto" dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'}>
+                    <div className="flex flex-col gap-1 w-1/2 items-start">
+                      <span className="text-xs font-bold text-slate-500">
+                        {currentLanguage === 'en' ? 'Linked Exams' : 'عدد الامتحانات المربوطة'}
+                      </span>
+                      <span className="font-extrabold text-slate-900">{cls.examIds.length}</span>
                     </div>
+                    <div className="flex flex-col gap-1 w-1/2 items-start">
+                      <span className="text-xs font-bold text-indigo-600">
+                        {currentLanguage === 'en' ? 'Linked Lessons' : 'عدد الدروس المربوطة'}
+                      </span>
+                      <span className="font-extrabold text-slate-900">{cls.lessonIds.length}</span>
+                    </div>
+                  </div>
+
+                  <div className="absolute inset-0 bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center gap-3 z-10">
+                    <button onClick={() => handleOpenClassBuilder(cls)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm">
+                      <Edit2 className="h-4 w-4" /> {currentLanguage === 'en' ? 'Edit Class' : 'تعديل الفصل'}
+                    </button>
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
 
-                {/* Content Body */}
-                <div className="p-6 grid md:grid-cols-2 gap-8">
-                  {/* Lessons List */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-indigo-500" />
-                        {t.lessons} ({cls.lessonIds.length})
-                      </h5>
-                      <button
-                        onClick={() => {
-                          setPreSelectedGroupId(cls.id);
-                          setShowCreateLessonModal(true);
-                        }}
-                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                      >
-                        {t.classGroup.addLesson}
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {cls.lessonIds.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic px-2">{t.classGroup.noLessons}</p>
-                      ) : (
-                        cls.lessonIds.map(lessonId => {
-                          const lesson = lessons.find(l => l.id === lessonId);
-                          if (!lesson) return null;
-                          return (
-                            <div key={lessonId} className="flex justify-between items-center bg-slate-50 border border-slate-100 p-3 rounded-xl hover:border-indigo-200 transition-colors">
-                              <span className="text-xs font-bold text-slate-700 truncate">{lesson.title}</span>
-                              <button onClick={() => handleOpenBuilder(lesson)} className="text-indigo-600 hover:text-indigo-700 p-1 cursor-pointer">
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Exams List */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-amber-500" />
-                        Exams ({cls.examIds.length})
-                      </h5>
-                      <button
-                        onClick={() => {
-                          // Standard assign logic or simplified exam create
-                          setAssignModalConfig({ mode: 'group-to-exams', sourceId: cls.id });
-                        }}
-                        className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer opacity-50"
-                        title="Adding exams requires Exam Builder (Placeholder)"
-                      >
-                        {t.classGroup.addExam}
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {cls.examIds.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic px-2">{t.classGroup.noExams}</p>
-                      ) : (
-                        // Mock rendering for exams, if they exist in state
-                        cls.examIds.map(examId => {
-                          return (
-                            <div key={examId} className="flex justify-between items-center bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                              <span className="text-xs font-bold text-slate-700 truncate">Exam ID: {examId}</span>
-                            </div>
-                          )
-                        })
-                      )}
-                    </div>
-                  </div>
+          {/* Class Builder */}
+          {showClassBuilder && builderClass && (
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-md p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.createClassBtn}</span>
+                  <input
+                    type="text"
+                    value={builderClass.name}
+                    onChange={e => setBuilderClass({ ...builderClass, name: e.target.value })}
+                    className="block text-xl font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-200 focus:border-indigo-600 outline-none w-full max-w-md py-1 mt-1"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      updateClass(builderClass);
+                      setShowClassBuilder(false);
+                      setBuilderClass(null);
+                    }}
+                    className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-1.5 hover:bg-indigo-700 shadow-md transition-all"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>{currentLanguage === 'en' ? 'Save Class' : 'حفظ ونشر الفصل'}</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowClassBuilder(false); setBuilderClass(null); }}
+                    className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                  >
+                    {currentLanguage === 'en' ? 'Cancel' : 'إلغاء'}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div className="flex flex-col lg:flex-row gap-6 min-h-[600px] h-full">
+                {/* Left Sidebar: Curriculum Outline */}
+                <div className="lg:w-[320px] shrink-0 border border-slate-200 rounded-2xl bg-slate-50 flex flex-col overflow-hidden max-h-[800px]">
+                  <div className="p-4 border-b border-slate-200 bg-white">
+                    <h4 className="font-bold text-slate-800 text-sm">Curriculum Outline</h4>
+                    <p className="text-xs text-slate-500 mt-1 font-medium">Add Lessons and Exams</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    {builderClass.lessonIds.length === 0 && builderClass.examIds.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400">
+                        <BookOpen className="h-8 w-8 mx-auto text-slate-300 mb-3" />
+                        <p className="text-xs font-semibold">No content added yet.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {builderClass.lessonIds.map((lessonId) => (
+                          <div key={`l-${lessonId}`} className="flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer bg-white border-slate-200 hover:border-slate-300">
+                            <div className="flex items-center gap-3 overflow-hidden w-full">
+                              <div className="cursor-grab text-slate-400 px-1 py-2"><GripVertical className="h-4 w-4" /></div>
+                              <div className="p-1.5 rounded-lg shrink-0 bg-indigo-100 text-indigo-600"><BookOpen className="h-3.5 w-3.5" /></div>
+                              <span className="text-xs font-bold truncate text-slate-700">Lesson: {lessons.find(l => l.id === lessonId)?.title || lessonId}</span>
+                            </div>
+                            <button onClick={() => setBuilderClass({ ...builderClass, lessonIds: builderClass.lessonIds.filter(id => id !== lessonId) })} className="text-slate-400 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                        ))}
+                        {builderClass.examIds.map((examId) => (
+                          <div key={`e-${examId}`} className="flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer bg-white border-slate-200 hover:border-slate-300">
+                            <div className="flex items-center gap-3 overflow-hidden w-full">
+                              <div className="cursor-grab text-slate-400 px-1 py-2"><GripVertical className="h-4 w-4" /></div>
+                              <div className="p-1.5 rounded-lg shrink-0 bg-amber-100 text-amber-600"><FileText className="h-3.5 w-3.5" /></div>
+                              <span className="text-xs font-bold truncate text-slate-700">Exam: {exams?.find(e => e.id === examId)?.title || examId}</span>
+                            </div>
+                            <button onClick={() => setBuilderClass({ ...builderClass, examIds: builderClass.examIds.filter(id => id !== examId) })} className="text-slate-400 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  <div className="p-4 border-t border-slate-200 bg-white grid grid-cols-1 gap-2 shrink-0">
+                    <button onClick={() => setSelectedClassItem({type: 'lesson', index: -1})} className="bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors w-full">
+                      <BookOpen className="h-4 w-4" /> Add Lesson
+                    </button>
+                    <button onClick={() => setSelectedClassItem({type: 'exam', index: -1})} className="bg-amber-50/50 hover:bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors w-full">
+                      <FileText className="h-4 w-4" /> Add Exam
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Content */}
+                <div className="flex-1 border border-slate-200 rounded-2xl bg-white p-6 shadow-sm relative min-h-[500px]">
+                  {!selectedClassItem ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-4 bg-slate-50/30 rounded-2xl">
+                      <Layers className="h-12 w-12 text-slate-200" />
+                      <p className="text-sm font-semibold">Select an item type from the curriculum outline to add.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                        <div className={`p-2 rounded-xl ${selectedClassItem.type === 'lesson' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
+                          {selectedClassItem.type === 'lesson' ? <BookOpen className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                        </div>
+                        <h3 className="font-extrabold text-slate-800 text-lg">
+                          Select {selectedClassItem.type === 'lesson' ? 'Lesson' : 'Exam'} to Add
+                        </h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
+                        {selectedClassItem.type === 'lesson' ? (
+                          lessons.filter(l => !builderClass.lessonIds.includes(l.id)).map(l => (
+                            <button key={l.id} onClick={() => {
+                              setBuilderClass({...builderClass, lessonIds: [...builderClass.lessonIds, l.id]});
+                              setSelectedClassItem(null);
+                            }} className="text-left p-4 border border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-sm transition-all bg-white">
+                              <h4 className="font-bold text-slate-800 text-sm mb-1">{l.title}</h4>
+                              <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-bold">{l.grade}</span>
+                            </button>
+                          ))
+                        ) : (
+                          exams?.filter(e => !builderClass.examIds.includes(e.id)).map(e => (
+                            <button key={e.id} onClick={() => {
+                              setBuilderClass({...builderClass, examIds: [...builderClass.examIds, e.id]});
+                              setSelectedClassItem(null);
+                            }} className="text-left p-4 border border-slate-200 rounded-xl hover:border-amber-500 hover:shadow-sm transition-all bg-white">
+                              <h4 className="font-bold text-slate-800 text-sm mb-1">{e.title}</h4>
+                              <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded font-bold">{e.targetGrade || 'Grade 1'}</span>
+                            </button>
+                          ))
+                        )}
+                        
+                          {(selectedClassItem.type === 'lesson' ? lessons.filter(l => !builderClass.lessonIds.includes(l.id)) : exams?.filter(e => !builderClass.examIds.includes(e.id)))?.length === 0 && (
+                          <div className="col-span-1 md:col-span-2 text-center py-8 text-slate-400">
+                            No available items to add.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Modal Class Creation */}
           {showClassModal && (
             <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <form onSubmit={handleCreateClass} className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-8 space-y-5 text-left">
+              <form onSubmit={handleCreateClass} className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-8 space-y-5 text-left animate-fade-in max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                  <h3 className="font-bold text-slate-900">{t.createClassBtn}</h3>
-                  <button type="button" onClick={() => setShowClassModal(false)} className="text-slate-400 hover:text-slate-600">
-                    <Trash2 className="h-4 w-4" />
+                  <h3 className="font-extrabold text-slate-900 text-lg">{t.createClassBtn}</h3>
+                  <button type="button" onClick={() => setShowClassModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">{t.classGroup.name}</label>
                   <input
@@ -1176,45 +1378,86 @@ export default function ContentManager() {
                     value={cName}
                     onChange={e => setCName(e.target.value)}
                     placeholder="Grade 12 - Scientific Group A"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none font-semibold text-slate-900"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">{t.classGroup.desc}</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={cDesc}
                     onChange={e => setCDesc(e.target.value)}
                     placeholder="Provide details about lessons syllabus or weekly group schedules..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none resize-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none resize-none font-semibold text-slate-900"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Grade</label>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    {currentLanguage === 'en' ? 'Target Grade' : 'المرحلة الدراسية المستهدفة'}
+                  </label>
+                  <select
+                    value={cGrade}
+                    onChange={e => setCGrade(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-indigo-600 font-semibold text-slate-700 cursor-pointer text-left"
+                  >
+                    {academicLevels.length > 0 ? (
+                      academicLevels.map(lvl => (
+                        <option key={lvl.id} value={lvl.id}>{lvl.name}</option>
+                      ))
+                    ) : (
+                      <option value="">{currentLanguage === 'en' ? 'No grades found' : 'لا توجد مراحل دراسية'}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status</label>
                   <div className="grid grid-cols-3 gap-3">
-                    {(['Grade 1', 'Grade 2', 'Grade 3'] as const).map(grade => (
+                    {(['draft', 'active', 'scheduled'] as const).map(status => (
                       <button
-                        key={grade}
+                        key={status}
                         type="button"
-                        onClick={() => setCGrade(grade)}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${cGrade === grade ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                        onClick={() => setCStatus(status)}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all capitalize ${cStatus === status ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                       >
-                        {grade}
+                        {status === 'active' ? 'Active' : status === 'scheduled' ? 'Schedule' : 'Draft'}
                       </button>
                     ))}
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100"
-                >
-                  {t.createClassBtn}
-                </button>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 flex items-center justify-center gap-2"
+                  >
+                    <span>{t.createClassBtn}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowClassModal(false)}
+                    className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl transition-all"
+                  >
+                    {currentLanguage === 'en' ? 'Cancel' : 'إلغاء'}
+                  </button>
+                </div>
               </form>
             </div>
           )}
         </div>
+      )}
+
+      {/* 3. Questions Tab */}
+      {activeTab === 'questions' && (
+        <QuestionBank gradeId={selectedGradeId || 'g1'} />
+      )}
+
+      {/* 4. Exams Tab */}
+      {activeTab === 'exams' && (
+        <ExamsManager gradeId={selectedGradeId || 'g1'} />
       )}
 
       {/* Modal Lesson Creation */}
@@ -1358,35 +1601,112 @@ export default function ContentManager() {
         />
       )}
 
-      {/* Generate with AI Modal */}
-      {showAIGenerator && (
-        <AIGeneratorModal
-          onClose={() => setShowAIGenerator(false)}
-          onGenerate={(data) => {
-            const generatedQ: Question = {
-              id: `q-${Date.now()}`,
-              title: data.title,
-              type: data.type,
-              difficulty: data.difficulty,
-              grade: data.grade,
-              options: data.options,
-              correctOption: data.correctOption,
-              modelAnswer: data.modelAnswer,
-              folderId: folders.length > 0 ? folders[0].id : 'unassigned' // link to folder or unassigned
-            };
-            addQuestion(generatedQ);
-
-            // If in builder, add to the active section
-            if (showBuilder && builderLesson && selectedSectionId) {
-              const sec = builderLesson.sections.find(s => s.id === selectedSectionId);
-              if (sec && sec.type === 'exercises') {
-                handleToggleQuestion(selectedSectionId, generatedQ.id);
-              }
-            }
-            setShowAIGenerator(false);
-          }}
-        />
+      {/* Close the fragment that wrapped the tabs view when a grade is selected */}
+      </>
       )}
+
+      {/* Modal Academic Level Configurator */}
+      {showLevelConfigModal && (
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-8 space-y-6 text-left my-8 text-slate-800 animate-fade-in">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Folder className="h-5 w-5" />
+                <h3 className="font-extrabold text-slate-950 text-sm">
+                  {currentLanguage === 'en' ? 'Configure Academic Levels' : 'إعداد المراحل الدراسية'}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setShowLevelConfigModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs font-semibold text-slate-500 leading-relaxed">
+              {currentLanguage === 'en' 
+                ? 'Select the stages/grades you teach. Selected levels will be active on your dashboard.'
+                : 'اختر المراحل والصفوف الدراسية التي تقوم بتدريسها، وسيتم تفعيل الصفوف المحددة في لوحة التحكم الخاصة بك.'}
+            </p>
+
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 gap-2">
+                {academicLevels.map((level) => {
+                  return (
+                    <div 
+                      key={level.id}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border-2 border-slate-100 hover:border-slate-200 text-slate-700 font-semibold transition-all`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs">{level.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {level.description && (
+                           <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase">
+                             {level.description}
+                           </span>
+                        )}
+                        <button 
+                          onClick={() => deleteAcademicLevel(level.id)}
+                          className="text-slate-400 hover:text-rose-500 p-1 rounded-md transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {academicLevels.length === 0 && (
+                  <p className="text-xs text-slate-500 text-center py-4">
+                    {currentLanguage === 'en' ? 'No levels added yet.' : 'لم يتم إضافة أي مرحلة دراسية.'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4 mt-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newStageName}
+                  onChange={(e) => setNewStageName(e.target.value)}
+                  placeholder={currentLanguage === 'en' ? 'New level name (e.g., Grade 10)' : 'اسم المرحلة الجديدة (مثال: الصف الرابع)'}
+                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newStageName.trim()) {
+                      addAcademicLevel({
+                        id: `lvl-${Date.now()}`,
+                        name: newStageName.trim(),
+                        labelNum: (academicLevels.length + 1).toString()
+                      });
+                      setNewStageName('');
+                    }
+                  }}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+                >
+                  {currentLanguage === 'en' ? 'Add' : 'إضافة'}
+                </button>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLevelConfigModal(false)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer text-xs uppercase tracking-wider text-center"
+              >
+                {currentLanguage === 'en' ? 'Done' : 'تم'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
