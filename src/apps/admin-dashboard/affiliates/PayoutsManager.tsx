@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
 import { Search, CreditCard, CheckCircle2, Plus, X, ChevronDown, AlertTriangle } from 'lucide-react';
 import { AffiliatePayout } from '../../../shared/types';
@@ -124,8 +124,16 @@ export default function PayoutsManager() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'processing' | 'paid'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  const affiliateMap = useMemo(() => {
+    const map = new Map();
+    for (const affiliate of affiliates) {
+      map.set(affiliate.id, affiliate);
+    }
+    return map;
+  }, [affiliates]);
+
   const filteredPayouts = affiliatePayouts.filter(p => {
-    const affiliate = affiliates.find(a => a.id === p.affiliateId);
+    const affiliate = affiliateMap.get(p.affiliateId);
     const matchesSearch = affiliate?.name.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -222,7 +230,7 @@ export default function PayoutsManager() {
                 </tr>
               ) : (
                 filteredPayouts.map(payout => {
-                  const affiliate = affiliates.find(a => a.id === payout.affiliateId);
+                  const affiliate = affiliateMap.get(payout.affiliateId);
                   return (
                     <tr key={payout.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-4">
