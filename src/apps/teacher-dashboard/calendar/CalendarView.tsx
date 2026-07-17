@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
 import { CalendarEvent } from '../../../shared/types';
-import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, X, BellRing } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 
 export default function CalendarView() {
   const { currentLanguage, events, addEvent } = useAppState();

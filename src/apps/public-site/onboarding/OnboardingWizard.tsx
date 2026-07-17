@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
-import { User, Palette, Globe, Coins, ArrowRight, ArrowLeft, Loader2, Sparkles, Check, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, Sparkles, Check, CheckCircle2 } from 'lucide-react';
 
 export default function OnboardingWizard() {
   const { currentLanguage, setRole, teacherProfile, updateTeacherProfile, onboardingStep, setOnboardingStep } = useAppState();

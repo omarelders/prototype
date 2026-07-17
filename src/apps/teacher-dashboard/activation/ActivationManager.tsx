@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
-import { BookOpen, FileSpreadsheet, Layers, Calendar, Zap, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, Layers, Calendar, Zap, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function ActivationManager() {
   const { currentLanguage, lessons: allLessons, exams: allExams, classes: allClasses, academicLevels, updateLesson, updateExam, updateClass } = useAppState();

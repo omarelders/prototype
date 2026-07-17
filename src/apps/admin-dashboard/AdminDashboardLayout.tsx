@@ -22,8 +22,8 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-function SidebarContent({ activeTab, setActiveTab, onClose, setRole, currentLanguage }: any) {
-  const { globalTeachers, affiliatePayouts, affiliates } = useAppState();
+function SidebarContent({ activeTab, setActiveTab, onClose, setRole }: any) {
+  const { globalTeachers, affiliatePayouts } = useAppState();
 
   const suspendedTeachers = globalTeachers.filter(t => t.status === 'suspended').length;
   const pendingPayouts = affiliatePayouts.filter(p => p.status !== 'paid').length;

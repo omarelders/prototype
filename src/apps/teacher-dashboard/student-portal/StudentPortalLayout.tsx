@@ -9,7 +9,7 @@ import {
   GraduationCap,
   Menu,
   X,
-  Clock
+
 } from 'lucide-react';
 
 interface PortalLayoutProps {

@@ -18,8 +18,7 @@ import {
   RotateCcw,
   RotateCw,
   Save,
-  Sparkles,
-  Upload,
+    Upload,
   GripVertical,
   Edit2,
   X,
@@ -165,7 +164,7 @@ export default function ContentManager() {
   // Hybrid linking states
   const [cGrade, setCGrade] = useState<string>('');
   const [cStatus, setCStatus] = useState<'active' | 'scheduled' | 'draft'>('active');
-  const [lessonSubject, setLessonSubject] = useState('Chemistry');
+  const [lessonSubject] = useState('Chemistry');
   const [assignModalConfig, setAssignModalConfig] = useState<{ mode: 'lesson-to-groups' | 'group-to-lessons' | 'exam-to-groups' | 'group-to-exams'; sourceId: string; gradeFilter?: string; isOptionalStep?: boolean } | null>(null);
   const [preSelectedGroupId, setPreSelectedGroupId] = useState<string | null>(null);
   const [isNewLesson, setIsNewLesson] = useState(false);
