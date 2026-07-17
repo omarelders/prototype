@@ -211,14 +211,16 @@ export default function AnalyticsDashboard() {
   // Most missed question (lowest % correct for MCQ)
   const questionStats = useMemo(() => {
     const stats: Record<string, { correct: number; total: number; title: string }> = {};
+    const questionsById = new Map();
     questions.forEach(q => {
+      questionsById.set(q.id, q);
       if (q.type !== 'mcq') return;
       stats[q.id] = { correct: 0, total: 0, title: q.title };
     });
     submissions.forEach(sub => {
       if (!sub.mcqAnswers) return;
       Object.entries(sub.mcqAnswers).forEach(([qId, answer]) => {
-        const q = questions.find(qq => qq.id === qId);
+        const q = questionsById.get(qId);
         if (!q || q.type !== 'mcq') return;
         if (!stats[qId]) stats[qId] = { correct: 0, total: 0, title: q.title };
         stats[qId].total++;
