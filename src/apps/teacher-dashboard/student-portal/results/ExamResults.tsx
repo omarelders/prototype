@@ -4,10 +4,8 @@ import { ExamSubmission } from '../../../../shared/types';
 import MathRenderer from '../../../../shared/components/MathRenderer';
 import { 
   Award, 
-  ChevronRight, 
   CheckCircle2, 
   XCircle,  
-  X, 
   Users, 
   TrendingUp,
   FileText,
