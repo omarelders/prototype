@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppState } from '../../../shared/context/AppState';
-import { Package, Plus, Check, MoreVertical, Zap } from 'lucide-react';
+import { Package, Check, Zap } from 'lucide-react';
 
 export default function PricingPlans() {
   const { currentLanguage } = useAppState();
