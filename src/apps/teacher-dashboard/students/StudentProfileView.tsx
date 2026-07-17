@@ -181,6 +181,13 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
     [submissions, student.id]
   );
 
+  /* ── Exam Dictionary ── */
+  const examDict = useMemo(() => {
+    const map: Record<string, typeof exams[0]> = {};
+    exams.forEach(e => { map[e.id] = e; });
+    return map;
+  }, [exams]);
+
   /* ── Exam max scores ── */
   const examMaxScores: Record<string, number> = useMemo(() => {
     const map: Record<string, number> = {};
@@ -215,7 +222,7 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
 
   /* ── Question-level accuracy per submission ── */
   function getQuestionResults(sub: typeof mySubmissions[0]) {
-    const exam = exams.find(e => e.id === sub.examId);
+    const exam = examDict[sub.examId];
     if (!exam) return [];
     return exam.questionIds.map(qId => {
       const q = questions.find(qq => qq.id === qId);
@@ -263,7 +270,7 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
 
   if (viewingSubmissionId) {
     const sub = submissions.find(s => s.id === viewingSubmissionId);
-    const exam = exams.find(e => e.id === sub?.examId);
+    const exam = sub ? examDict[sub.examId] : undefined;
     if (sub && exam) {
       return <ExamSubmissionViewer exam={exam} submission={sub} onBack={() => setViewingSubmissionId(null)} />;
     }
@@ -428,7 +435,7 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
               {/* X-axis labels */}
               <div className="flex justify-between mt-1 px-1">
                 {mySubmissions.map((sub, i) => {
-                  const exam = exams.find(e => e.id === sub.examId);
+                  const exam = examDict[sub.examId];
                   return (
                     <span key={i} className="text-[9px] text-slate-400 font-semibold truncate max-w-[80px] text-center">
                       {exam?.title.split(' ').slice(0, 2).join(' ') ?? `Exam ${i + 1}`}
@@ -458,7 +465,7 @@ export default function StudentProfileView({ student, onBack }: StudentProfileVi
           </h3>
           <div className="space-y-4">
             {mySubmissions.map((sub, idx) => {
-              const exam = exams.find(e => e.id === sub.examId);
+              const exam = examDict[sub.examId];
               const examMax = examMaxScores[sub.examId] ?? 12;
               const pctScore = scorePcts[idx];
               const percentile = classPercentile[sub.id];
