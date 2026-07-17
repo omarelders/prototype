@@ -153,7 +153,6 @@ function AppContent() {
               {studentTab === 'exams' && (
                 <ExamResults 
                   submission={activeSubmission} 
-                  onNavigate={setStudentTab}
                 />
               )}
             </>

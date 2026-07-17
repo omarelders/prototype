@@ -18,10 +18,9 @@ import {
 
 interface ExamResultsProps {
   submission?: ExamSubmission;
-  onNavigate: (tab: string) => void;
 }
 
-export default function ExamResults({ submission, onNavigate }: ExamResultsProps) {
+export default function ExamResults({ submission }: ExamResultsProps) {
   const { currentLanguage, questions, submissions } = useAppState();
   const [activeSub, setActiveSub] = useState<ExamSubmission | null>(submission || submissions[0] || null);
 
