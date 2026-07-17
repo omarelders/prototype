@@ -29,44 +29,7 @@ interface StudentProfileViewProps {
 import ExamSubmissionViewer from './ExamSubmissionViewer';
 
 /* ─── Sparkline ─────────────────────────── */
-function Sparkline({ values, color = '#4361ee' }: { values: number[]; color?: string }) {
-  if (values.length < 2) return null;
-  const max = Math.max(...values, 100);
-  const min = 0;
-  const range = max - min || 1;
-  const w = 160, h = 40, pad = 4;
-  const pts = values.map((v, i) => {
-    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
-    const y = h - pad - ((v - min) / range) * (h - pad * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const lastX = parseFloat(pts[pts.length - 1].split(',')[0]);
-  const lastY = parseFloat(pts[pts.length - 1].split(',')[1]);
 
-  // Area fill path
-  const area = `M ${pts[0]} ${pts.slice(1).map(p => `L ${p}`).join(' ')} L ${(w - pad).toFixed(1)},${(h - pad).toFixed(1)} L ${pad},${(h - pad).toFixed(1)} Z`;
-
-  return (
-    <svg width={w} height={h} className="overflow-visible">
-      <defs>
-        <linearGradient id={`sg-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#sg-${color.replace('#', '')})`} />
-      <polyline
-        points={pts.join(' ')}
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={lastX} cy={lastY} r="4" fill={color} stroke="white" strokeWidth="2" />
-    </svg>
-  );
-}
 
 /* ─── Relative time helper ─────────────── */
 function relativeTime(dateStr: string, isAr: boolean): string {

@@ -4,11 +4,9 @@ import { ExamSubmission } from '../../../../shared/types';
 import MathRenderer from '../../../../shared/components/MathRenderer';
 import { 
   Award, 
-  ChevronRight, 
-  CheckCircle2, 
+    CheckCircle2,
   XCircle,  
-  X, 
-  Users, 
+    Users,
   TrendingUp,
   FileText,
   BarChart3,
@@ -21,7 +19,7 @@ interface ExamResultsProps {
   onNavigate: (tab: string) => void;
 }
 
-export default function ExamResults({ submission, onNavigate }: ExamResultsProps) {
+export default function ExamResults({ submission }: ExamResultsProps) {
   const { currentLanguage, questions, submissions } = useAppState();
   const [activeSub, setActiveSub] = useState<ExamSubmission | null>(submission || submissions[0] || null);
 

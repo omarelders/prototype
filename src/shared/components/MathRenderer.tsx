@@ -31,7 +31,7 @@ export default function MathRenderer({ text, className = '' }: MathRendererProps
           dangerouslySetInnerHTML={{ __html: html }}
         />
       );
-    } catch (err) {
+    } catch {
       blockMathNodes.push(
         <pre key={`block-math-err-${idx}`} className="text-rose-600 bg-rose-50 p-3 rounded-xl my-2 text-xs overflow-x-auto border border-rose-100">
           {mathContent}
@@ -56,7 +56,7 @@ export default function MathRenderer({ text, className = '' }: MathRendererProps
           dangerouslySetInnerHTML={{ __html: html }}
         />
       );
-    } catch (err) {
+    } catch {
       inlineMathNodes.push(
         <span key={`inline-math-err-${idx}`} className="text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 text-xs">
           {mathContent}

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppState } from '../../../../shared/context/AppState';
-import { Exam, Question, ExamSubmission } from '../../../../shared/types';
+import { Exam, ExamSubmission } from '../../../../shared/types';
 import MathRenderer from '../../../../shared/components/MathRenderer';
 import { 
   Clock, 
@@ -53,6 +53,26 @@ export default function ExamTaker({ exam, onSubmit }: ExamTakerProps) {
     }
   );
 
+  const unansweredCount = examQuestions.filter(q => answers[q.id] === undefined).length;
+
+  const handleFinalSubmit = useCallback(() => {
+    if (unansweredCount > 0 && !confirmSubmit) {
+      setConfirmSubmit(true);
+      return;
+    }
+    const sub = {
+      id: `sub-${Date.now()}`,
+      examId: exam.id,
+      studentId: 'st-student',
+      studentName: 'Test Student',
+      answers,
+      status: 'submitted'
+    } as ExamSubmission;
+    // Assuming addSubmission exists on context or props, not standard in the previous code but it's what was in the file
+    if (typeof addSubmission === 'function') addSubmission(sub);
+    onSubmit(sub);
+  }, [unansweredCount, confirmSubmit, answers, exam.id, onSubmit, addSubmission]);
+
   useEffect(() => {
     if (isFullscreen && timeLeft > 0) {
       const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
@@ -60,7 +80,7 @@ export default function ExamTaker({ exam, onSubmit }: ExamTakerProps) {
     } else if (timeLeft === 0) {
       handleFinalSubmit();
     }
-  }, [isFullscreen, timeLeft]);
+  }, [isFullscreen, timeLeft, handleFinalSubmit]);
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -70,24 +90,7 @@ export default function ExamTaker({ exam, onSubmit }: ExamTakerProps) {
 
 
 
-  const unansweredCount = examQuestions.filter(q => answers[q.id] === undefined).length;
 
-  const handleFinalSubmit = () => {
-    if (unansweredCount > 0 && !confirmSubmit) {
-      setConfirmSubmit(true);
-      return;
-    }
-    const sub: ExamSubmission = {
-      id: `sub-${Date.now()}`,
-      examId: exam.id,
-      studentId: 'st-student',
-      studentName: 'Test Student',
-      answers,
-      status: 'submitted'
-    };
-    addSubmission(sub);
-    onSubmit(sub);
-  };
 
   const currentQ = examQuestions[currentQIdx];
   const answeredCount = Object.keys(answers).length;

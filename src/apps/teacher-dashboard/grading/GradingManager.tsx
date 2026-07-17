@@ -3,8 +3,7 @@ import { useAppState } from '../../../shared/context/AppState';
 import { 
   CheckSquare, 
   Search, 
-  Filter,
-  CheckCircle2,
+    CheckCircle2,
   Clock,
   ChevronRight,
   Inbox
@@ -12,7 +11,7 @@ import {
 import ExamSubmissionViewer from '../students/ExamSubmissionViewer';
 
 export default function GradingManager() {
-  const { currentLanguage, submissions, exams, students } = useAppState();
+  const { currentLanguage, submissions, exams } = useAppState();
   const isAr = currentLanguage === 'ar';
   
   const [searchQuery, setSearchQuery] = useState('');

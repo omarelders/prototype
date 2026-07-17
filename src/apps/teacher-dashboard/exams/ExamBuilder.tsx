@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
 import { Exam, Question } from '../../../shared/types';
 import MathRenderer from '../../../shared/components/MathRenderer';

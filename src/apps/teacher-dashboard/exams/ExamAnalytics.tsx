@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
-import { ExamSubmission, Question } from '../../../shared/types';
+import { Question } from '../../../shared/types';
 import MathRenderer from '../../../shared/components/MathRenderer';
 import { 
-  Users, Target, TrendingUp, BarChart3, ChevronLeft, ChevronRight, CheckCircle2, XCircle, FileText, Sparkles, UserCheck
+  Users, Target, TrendingUp, BarChart3, ChevronLeft, ChevronRight, CheckCircle2, XCircle
 } from 'lucide-react';
 
 interface ExamAnalyticsProps {
@@ -11,7 +11,7 @@ interface ExamAnalyticsProps {
 }
 
 export default function ExamAnalytics({ examId }: ExamAnalyticsProps) {
-  const { currentLanguage, exams, submissions, questions, updateSubmission } = useAppState();
+  const { exams, submissions, questions, updateSubmission } = useAppState();
   
   const [activeTab, setActiveTab] = useState<'summary' | 'question' | 'individual'>('summary');
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -51,7 +51,7 @@ export default function ExamAnalytics({ examId }: ExamAnalyticsProps) {
 
 
 
-  const handleSaveIndividualGrade = (subId: string, qId: string, score: number) => {
+  const _handleSaveIndividualGrade = (subId: string, qId: string, score: number) => {
     // In a real app we'd save per-question scores. Here we just update total score for demo
     const sub = examSubmissions.find(s => s.id === subId);
     if (sub) {

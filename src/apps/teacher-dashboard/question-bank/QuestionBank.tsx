@@ -1,33 +1,17 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../../shared/context/AppState';
 import { Question, QuestionFolder } from '../../../shared/types';
-import MathRenderer from '../../../shared/components/MathRenderer';
+
 import QuestionFormModal from '../../../shared/components/QuestionFormModal';
 import { 
   Folder, 
   FolderPlus, 
   Plus, 
-  Sparkles, 
-  Search, 
-  Filter, 
-  Trash2, 
+    Search,
+    Trash2,
   Edit3, 
-  CheckCircle2, 
-  HelpCircle,
-  AlertCircle,
-  Bold,
-  Italic,
-  Underline,
-  Table,
-  Calculator,
-  FlaskConical,
-  Image,
-  List,
-  ListOrdered,
-  Pilcrow,
-  X,
-  GraduationCap,
-  Settings
+      AlertCircle,
+
 } from 'lucide-react';
 
 export default function QuestionBank({ gradeId }: { gradeId: string }) {
@@ -197,7 +181,7 @@ export default function QuestionBank({ gradeId }: { gradeId: string }) {
     setShowQuestionModal(true);
   };
 
-  const handleSaveQuestion = (e: React.FormEvent) => {
+  const _handleSaveQuestion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!qTitle || !selectedFolderId) return;
 
@@ -242,7 +226,7 @@ export default function QuestionBank({ gradeId }: { gradeId: string }) {
     return true;
   });
 
-  const handleInsertQuestionHTML = (openTag: string, closeTag: string) => {
+  const _handleInsertQuestionHTML = (openTag: string, closeTag: string) => {
     const textarea = document.getElementById('question-editor-textarea') as HTMLTextAreaElement;
     if (!textarea) return;
 

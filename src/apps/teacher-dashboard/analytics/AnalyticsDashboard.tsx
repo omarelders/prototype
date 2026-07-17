@@ -9,13 +9,10 @@ import {
   Users,
   Target,
   Zap,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
+      HelpCircle,
   Activity,
   BookOpen,
-  ChevronRight,
-  Star,
+    Star,
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -157,7 +154,7 @@ export default function AnalyticsDashboard() {
     const map: Record<string, number> = {};
     exams.forEach(exam => {
       // Use real submission max to infer (or default 12 for the midterm)
-      const maxFromSubs = Math.max(
+      const _maxFromSubs = Math.max(
         ...submissions.filter(s => s.examId === exam.id && s.score != null).map(s => s.score ?? 0),
         1
       );

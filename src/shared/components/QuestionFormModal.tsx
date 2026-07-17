@@ -7,14 +7,12 @@ import {
   Bold, 
   Italic, 
   Underline, 
-  Pilcrow, 
-  List, 
+    List,
   ListOrdered, 
   Image, 
   Calculator, 
   FlaskConical, 
-  Table, 
-  Plus,
+    Plus,
   ChevronDown,
   Sparkles
 } from 'lucide-react';

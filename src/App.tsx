@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState, AppStateProvider } from './shared/context/AppState';
 import { Lesson, Exam, ExamSubmission } from './shared/types';
-import { Settings as DevIcon, RefreshCw, Layers, X } from 'lucide-react';
+import { Settings as DevIcon, RefreshCw, X } from 'lucide-react';
 
 // Level 0 imports
 import AdminDashboardLayout from './apps/admin-dashboard/AdminDashboardLayout';

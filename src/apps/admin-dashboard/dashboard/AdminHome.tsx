@@ -3,7 +3,7 @@ import { useAppState } from '../../../shared/context/AppState';
 import { Users, DollarSign, Activity, GraduationCap, TrendingUp, ArrowRight, UserCheck, Link2 } from 'lucide-react';
 
 export default function AdminHome({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const { globalTeachers, students, platformTransactions, affiliates, affiliatePayouts } = useAppState();
+  const { globalTeachers, students, affiliates, affiliatePayouts } = useAppState();
 
   const totalRevenue = globalTeachers.reduce((acc, t) => acc + (t.revenueGenerated ?? 0), 0);
   const activeTeachers = globalTeachers.filter(t => t.status === 'active').length;

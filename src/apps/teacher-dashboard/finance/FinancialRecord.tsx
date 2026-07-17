@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, {} from 'react';
 import { useAppState } from '../../../shared/context/AppState';
-import { Search, Filter, Download, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Search, Filter, Download } from 'lucide-react';
 
 export default function FinancialRecord() {
   const { currentLanguage } = useAppState();
