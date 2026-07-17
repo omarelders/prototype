@@ -54,6 +54,12 @@ export default function ContentManager() {
 
   const [activeTab, setActiveTab] = useState<'lessons' | 'classes' | 'questions' | 'exams'>('lessons');
 
+  const questionMap = React.useMemo(() => {
+    const map = new Map<string, Question>();
+    questions.forEach(q => map.set(q.id, q));
+    return map;
+  }, [questions]);
+
   // Translations
   const dict = {
     en: {
@@ -1136,7 +1142,7 @@ export default function ContentManager() {
                             {activeSection.exerciseQuestionIds && activeSection.exerciseQuestionIds.length > 0 ? (
                               <div className="space-y-2">
                                 {activeSection.exerciseQuestionIds.map((qId, qIdx) => {
-                                  const qObj = questions.find(q => q.id === qId);
+                                  const qObj = questionMap.get(qId);
                                   return (
                                     <div key={qId} className="p-4 bg-white border border-slate-200 hover:border-slate-300 transition-colors rounded-xl flex justify-between items-center group shadow-sm">
                                       <div className="flex items-center gap-3">
